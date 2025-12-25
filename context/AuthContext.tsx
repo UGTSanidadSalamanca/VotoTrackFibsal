@@ -20,11 +20,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [storedUsers] = useLocalStorage<User[]>('voto-track-managed-users', mockUsers);
 
   const login = useCallback(async (username: string, password: string): Promise<boolean> => {
-    // Buscar primero en los usuarios almacenados
-    const foundUser = storedUsers.find(
+    // Buscar tanto en los usuarios de código como en los almacenados por el administrador
+    const allAvailableUsers = [...mockUsers, ...storedUsers];
+
+    // Eliminar duplicados por nombre de usuario (priorizar mockUsers si hay conflicto)
+    const uniqueUsers = allAvailableUsers.filter((u, index, self) =>
+      index === self.findIndex((t) => t.username === u.username)
+    );
+
+    const foundUser = uniqueUsers.find(
       u => u.username === username && u.password === password
     );
-    
+
     if (foundUser) {
       const { password: _, ...userToStore } = foundUser;
       setUser(userToStore as User);
