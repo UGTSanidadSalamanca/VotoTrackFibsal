@@ -1,8 +1,9 @@
 import { User, Voter } from '../types';
 
 export const mockUsers: User[] = [
-  { username: 'admin', password: 'admin', role: 'admin', center: 'Todos' },
-  { username: 'mesa1', password: 'mesa1', role: 'mesa', center: 'FIBSAL' },
+  { username: 'admin', password: 'adminVoto2025', role: 'admin', center: 'Todos' },
+  { username: 'mesa1', password: 'mesa1Voto2025', role: 'mesa', center: 'FIBSAL' },
+  { username: 'suplente', password: 'suplenteVoto2025', role: 'mesa', center: 'FIBSAL' },
 ];
 
 export const VOTING_CENTERS = ['FIBSAL'];
