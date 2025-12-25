@@ -1,0 +1,5 @@
+{
+  "name": "VotoTrack FIBSAL",
+  "description": "A web application for real-time tracking of voter turnout during a union election. It allows administrators and polling staff to manage voting status, filter voters, and view participation statistics.",
+  "requestFramePermissions": []
+}
