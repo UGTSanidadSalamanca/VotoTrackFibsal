@@ -1,3 +1,4 @@
+
 import { User, Voter } from '../types';
 
 export const mockUsers: User[] = [
@@ -30,21 +31,26 @@ export const voterService = {
           header: true,
           skipEmptyLines: true,
           dynamicTyping: true,
-          transformHeader: (header: string) => header.trim().toLowerCase(), // Normaliza encabezados a minúsculas
+          transformHeader: (header: string) => header.trim().toLowerCase(),
           complete: (results: any) => {
-            const voters: Voter[] = results.data.map((row: any) => ({
-              id: Number(row.id || 0),
-              nombre: String(row.nombre || ''),
-              apellido: String(row.apellido || ''),
-              apellido2: String(row.apellido2 || ''),
-              telefono: String(row.telefono || ''),
-              email: String(row.email || ''),
-              afiliadoUGT: String(row.afiliadougt || '').toLowerCase() === 'si' || row.afiliadougt === true,
-              haVotado: String(row.havotado || '').toLowerCase() === 'si' || row.havotado === true,
-              horaVoto: row.horavoto || null,
-              centroVotacion: row.centrovotacion || 'FIBSAL',
-              mesaVotacion: row.mesavotacion || 'Mesa 1',
-            }));
+            const voters: Voter[] = results.data.map((row: any) => {
+              // Confiamos en el ID que viene del CSV ahora que ha sido corregido
+              const rowId = Number(row.id);
+              
+              return {
+                id: rowId,
+                nombre: String(row.nombre || ''),
+                apellido: String(row.apellido || ''),
+                apellido2: String(row.apellido2 || ''),
+                telefono: String(row.telefono || ''),
+                email: String(row.email || ''),
+                afiliadoUGT: String(row.afiliadougt || '').toLowerCase() === 'si' || row.afiliadougt === true,
+                haVotado: String(row.havotado || '').toLowerCase() === 'si' || row.havotado === true,
+                horaVoto: row.horavoto || null,
+                centroVotacion: row.centrovotacion || 'FIBSAL',
+                mesaVotacion: row.mesavotacion || 'Mesa 1',
+              };
+            });
             resolve(voters);
           },
           error: (error: any) => reject(error)
@@ -58,7 +64,10 @@ export const voterService = {
   updateVoterStatus: (voterId: number, hasVoted: boolean): Promise<{ success: boolean; horaVoto: string | null }> => {
     return new Promise(resolve => {
       setTimeout(() => {
-        resolve({ success: true, horaVoto: hasVoted ? new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }) : null });
+        resolve({ 
+            success: true, 
+            horaVoto: hasVoted ? new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }) : null 
+        });
       }, 300);
     });
   },
