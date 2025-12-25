@@ -1,10 +1,8 @@
 import { User, Voter } from '../types';
 
 export const mockUsers: User[] = [
-  { username: 'Enrique', password: 'Fibsal2026', role: 'admin', center: 'Todos' },
-  { username: 'Edu', password: 'Fibsal2026', role: 'mesa', center: 'FIBSAL' },
-  { username: 'Marta', password: 'Fibsal2026', role: 'mesa', center: 'FIBSAL' },
-  { username: 'David', password: 'Fibsal2026', role: 'mesa', center: 'FIBSAL' },
+  { username: 'admin', password: 'admin', role: 'admin', center: 'Todos' },
+  { username: 'mesa1', password: 'mesa1', role: 'mesa', center: 'FIBSAL' },
 ];
 
 export const VOTING_CENTERS = ['FIBSAL'];
@@ -18,10 +16,10 @@ export const voterService = {
       const response = await fetch(url);
       if (!response.ok) throw new Error('Error al descargar el archivo de Google Sheets');
       const csvText = await response.text();
-
+      
       const PapaModule = await import('https://esm.sh/papaparse@5.4.1');
       const Papa = PapaModule.default || PapaModule;
-
+      
       return new Promise((resolve, reject) => {
         if (typeof Papa.parse !== 'function') {
           reject(new Error('Librería de procesamiento no disponible.'));
