@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Voter } from '../types';
 import { AccordionItem, AccordionTrigger, AccordionContent } from './ui/Accordion';
@@ -64,7 +65,7 @@ const VoterCard: React.FC<VoterCardProps> = ({ voter, onStatusChange }) => {
                                     <ThumbsUp className="w-4 h-4 mr-2" />
                                     Marcar como Votado
                                 </Button>
-                                <Button variant="outline" size="sm" onClick={() => voterService.sendReminder(voter.id)}>
+                                <Button variant="outline" size="sm" onClick={() => voterService.sendReminder(voter)}>
                                     <Send className="w-4 h-4 mr-2" />
                                     Enviar Recordatorio
                                 </Button>

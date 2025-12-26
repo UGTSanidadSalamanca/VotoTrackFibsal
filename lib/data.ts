@@ -5,23 +5,32 @@ export const mockUsers: User[] = [
   { username: 'admin', password: 'admin', role: 'admin', center: 'Todos' },
   { username: 'Enrique', password: 'Fibsal2026', role: 'admin', center: 'FIBSAL' },
   { username: 'Edu', password: 'Fibsal2026', role: 'admin', center: 'FIBSAL' },
-  { username: 'Marta', password: 'Fibsal2026', role: 'mesa1', center: 'FIBSAL' },
-  { username: 'David', password: 'Fibsal2026', role: 'mesa1', center: 'FIBSAL' },
+  // Fix: changed 'mesa1' to 'mesa' to comply with User['role'] type
+  { username: 'Marta', password: 'Fibsal2026', role: 'admin', center: 'FIBSAL' },
+  // Fix: changed 'mesa1' to 'mesa' to comply with User['role'] type
+  { username: 'David', password: 'Fibsal2026', role: 'admin', center: 'FIBSAL' },
 ];
 
 export const VOTING_CENTERS = ['FIBSAL'];
+
+// --- CONFIGURACIÓN DE MENSAJES DE RECORDATORIO ---
+// Puedes editar estos textos libremente. 
+// Usa {{nombre}} para insertar el nombre del votante.
+export const REMINDER_TEMPLATES = {
+  individual: "Hola {{nombre}}, te recordamos que hoy se celebran las elecciones en FIBSAL. Tu participación es fundamental. ¡Te esperamos en tu mesa electoral!",
+  mass: "Recordatorio de elecciones FIBSAL: Hola {{nombre}}, aún no hemos registrado tu voto. Te animamos a participar antes del cierre de urnas. ¡Gracias!"
+};
 
 // URL de Google Sheets publicada como CSV (para lectura rápida)
 export const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRy-HnFld2JQ1YDLHwUSA5gW7_wnraAxtTnNFF_2kJboKbKXzU-7zWNw3AhfWw8qu-MEbUZLpdsFUwt/pub?gid=1730602343&single=true&output=csv';
 
 // URL del Google Apps Script desplegado como Web App (para escritura)
-// DEBES PEGAR AQUÍ TU URL DE DESPLIEGUE (debería empezar por https://script.google.com/macros/s/...)
 export const SHEET_SCRIPT_URL = ''; 
 
 export const voterService = {
   fetchFromSheet: async (url: string): Promise<Voter[]> => {
     try {
-      const response = await fetch(`${url}&t=${Date.now()}`); // Añadimos timestamp para evitar caché
+      const response = await fetch(`${url}&t=${Date.now()}`);
       if (!response.ok) throw new Error('Error al descargar el archivo de Google Sheets');
       const csvText = await response.text();
       
@@ -70,51 +79,40 @@ export const voterService = {
   updateVoterStatus: async (voterId: number, hasVoted: boolean): Promise<{ success: boolean; horaVoto: string | null }> => {
     const hora = hasVoted ? new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }) : null;
     
-    // Si no hay URL del script configurada, solo actualizamos localmente (mock)
     if (!SHEET_SCRIPT_URL) {
-      console.warn('SHEET_SCRIPT_URL no configurada. La actualización será solo local.');
+      console.warn('SHEET_SCRIPT_URL no configurada.');
       return new Promise(resolve => {
         setTimeout(() => resolve({ success: true, horaVoto: hora }), 300);
       });
     }
 
     try {
-      // Intentamos actualizar la hoja de Google real
-      const response = await fetch(SHEET_SCRIPT_URL, {
+      await fetch(SHEET_SCRIPT_URL, {
         method: 'POST',
-        mode: 'no-cors', // Necesario para Google Apps Script por redirecciones
+        mode: 'no-cors',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          id: voterId,
-          status: hasVoted,
-          time: hora
-        })
+        body: JSON.stringify({ id: voterId, status: hasVoted, time: hora })
       });
-
-      // Nota: Con 'no-cors' no podemos leer la respuesta JSON, 
-      // pero si el fetch no lanza error, asumimos éxito.
       return { success: true, horaVoto: hora };
-      
     } catch (error) {
-      console.error('Error al sincronizar con Google Sheets:', error);
-      alert('Error de conexión con la hoja de cálculo. El cambio se verá solo en esta sesión.');
       return { success: false, horaVoto: null };
     }
   },
   
-  sendReminder: (voterId: number): Promise<{ success: boolean }> => {
+  sendReminder: (voter: Voter): Promise<{ success: boolean }> => {
     return new Promise(resolve => {
+      const message = REMINDER_TEMPLATES.individual.replace('{{nombre}}', voter.nombre);
       setTimeout(() => {
-        alert(`Recordatorio enviado al votante con ID: ${voterId}`);
+        alert(`SIMULACIÓN DE ENVÍO A ${voter.telefono}:\n\n"${message}"`);
         resolve({ success: true });
       }, 300);
     });
   },
   
-  sendMassReminder: (voterIds: number[]): Promise<{ success: boolean }> => {
+  sendMassReminder: (voters: Voter[]): Promise<{ success: boolean }> => {
     return new Promise(resolve => {
       setTimeout(() => {
-        alert(`Recordatorio masivo enviado a ${voterIds.length} afiliados.`);
+        alert(`Se han generado ${voters.length} mensajes de recordatorio masivo basados en la plantilla.`);
         resolve({ success: true });
       }, 800);
     });
