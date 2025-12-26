@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo, useContext, useCallback, useEffect } from 'react';
 import { voterService, VOTING_CENTERS, SHEET_CSV_URL } from '../lib/data';
 import { Voter, User } from '../types';
@@ -96,7 +97,8 @@ const AuthenticatedApp: React.FC = () => {
     return votersForUser
       .filter(voter => {
         const normalizedSearch = normalizeText(searchTerm);
-        const nameMatch = normalizeText(voter.nombre + ' ' + voter.apellido + ' ' + voter.apellido2).includes(normalizedSearch);
+        const fullName = `${voter.nombre} ${voter.apellido} ${voter.apellido2}`;
+        const nameMatch = normalizeText(fullName).includes(normalizedSearch);
         const emailMatch = normalizeText(voter.email).includes(normalizedSearch);
         const phoneMatch = voter.telefono.includes(normalizedSearch);
         return nameMatch || emailMatch || phoneMatch;

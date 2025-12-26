@@ -37,9 +37,8 @@ const FilterControls: React.FC<FilterControlsProps> = ({
 }) => {
 
     const handleMassReminder = () => {
-        const voterIds = filteredVoters.map(v => v.id);
-        if (voterIds.length > 0) {
-            voterService.sendMassReminder(voterIds);
+        if (filteredVoters.length > 0) {
+            voterService.sendMassReminder(filteredVoters);
         } else {
             alert('No hay votantes que cumplan los criterios para el envío masivo.');
         }

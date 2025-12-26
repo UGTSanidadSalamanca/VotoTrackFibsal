@@ -5,44 +5,67 @@ import { Card, CardHeader, CardTitle, CardContent, CardDescription } from './ui/
 import { Input } from './ui/Input';
 import { Button } from './ui/Button';
 import { Select } from './ui/Select';
-import { Badge } from './ui/Badge';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import { mockUsers, VOTING_CENTERS } from '../lib/data';
-import { UserPlus, Trash2, Shield, MapPin } from 'lucide-react';
+import { UserPlus, Trash2, Shield, MapPin, Pencil, X } from 'lucide-react';
 
 const UserManagement: React.FC = () => {
   const [users, setUsers] = useLocalStorage<User[]>('voto-track-managed-users', mockUsers);
   const [currentUser] = useLocalStorage<User | null>('voto-track-user', null);
   
+  const [editingUsername, setEditingUsername] = useState<string | null>(null);
   const [newUsername, setNewUsername] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [newRole, setNewRole] = useState<'admin' | 'mesa'>('mesa');
   const [newCenter, setNewCenter] = useState(VOTING_CENTERS[0]);
 
-  const handleAddUser = (e: React.FormEvent) => {
+  const resetForm = () => {
+    setEditingUsername(null);
+    setNewUsername('');
+    setNewPassword('');
+    setNewRole('mesa');
+    setNewCenter(VOTING_CENTERS[0]);
+  };
+
+  const handleAddOrUpdateUser = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newUsername || !newPassword) return;
 
-    if (users.some(u => u.username === newUsername)) {
+    if (!editingUsername && users.some(u => u.username === newUsername)) {
       alert('El nombre de usuario ya existe.');
       return;
     }
 
-    const newUser: User = {
+    const userData: User = {
       username: newUsername,
       password: newPassword,
       role: newRole,
       center: newRole === 'admin' ? 'Todos' : newCenter,
     };
 
-    setUsers([...users, newUser]);
-    setNewUsername('');
-    setNewPassword('');
+    if (editingUsername) {
+      setUsers(users.map(u => u.username === editingUsername ? userData : u));
+    } else {
+      setUsers([...users, userData]);
+    }
+    
+    resetForm();
+  };
+
+  const handleEditClick = (user: User) => {
+    setEditingUsername(user.username);
+    setNewUsername(user.username);
+    setNewPassword(user.password || '');
+    setNewRole(user.role);
+    setNewCenter(user.center === 'Todos' ? VOTING_CENTERS[0] : user.center);
+    
+    // Scroll suave hacia el formulario
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleDeleteUser = (username: string) => {
     if (username === currentUser?.username) {
-      alert('No puedes eliminar tu propia cuenta de administrador.');
+      alert('No puedes eliminar tu propia cuenta de administrador mientras estás conectado.');
       return;
     }
     if (confirm(`¿Estás seguro de que quieres eliminar al usuario ${username}?`)) {
@@ -52,16 +75,25 @@ const UserManagement: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <Card>
+      <Card className={editingUsername ? "border-primary/50 ring-1 ring-primary/20" : ""}>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <UserPlus className="w-6 h-6 text-primary" />
-            Añadir Nuevo Usuario
+          <CardTitle className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+                {editingUsername ? <Pencil className="w-6 h-6 text-primary" /> : <UserPlus className="w-6 h-6 text-primary" />}
+                {editingUsername ? `Editando Usuario: ${editingUsername}` : 'Añadir Nuevo Usuario'}
+            </div>
+            {editingUsername && (
+                <Button variant="ghost" size="sm" onClick={resetForm}>
+                    <X className="w-4 h-4 mr-1" /> Cancelar
+                </Button>
+            )}
           </CardTitle>
-          <CardDescription>Crea accesos para nuevos administradores o delegados de mesa</CardDescription>
+          <CardDescription>
+            {editingUsername ? 'Modifica las credenciales o permisos del usuario seleccionado' : 'Crea accesos para nuevos administradores o delegados de mesa'}
+          </CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleAddUser} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 items-end">
+          <form onSubmit={handleAddOrUpdateUser} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 items-end">
             <div className="space-y-1">
               <label className="text-xs text-gray-400">Usuario</label>
               <Input 
@@ -69,12 +101,13 @@ const UserManagement: React.FC = () => {
                 value={newUsername} 
                 onChange={(e) => setNewUsername(e.target.value)} 
                 required 
+                disabled={!!editingUsername} // El nombre de usuario suele ser el ID único
               />
             </div>
             <div className="space-y-1">
               <label className="text-xs text-gray-400">Contraseña</label>
               <Input 
-                type="password" 
+                type="text" // Cambiado a text para que el admin pueda ver qué está poniendo al editar
                 placeholder="Contraseña" 
                 value={newPassword} 
                 onChange={(e) => setNewPassword(e.target.value)} 
@@ -102,9 +135,8 @@ const UserManagement: React.FC = () => {
                 )}
               </Select>
             </div>
-            {/* Fix: Changed variant from "primary" to "default" as "primary" is not a valid variant in ButtonProps */}
-            <Button type="submit" variant="default" className="w-full">
-              Crear Usuario
+            <Button type="submit" variant={editingUsername ? "accent" : "default"} className="w-full">
+              {editingUsername ? 'Guardar Cambios' : 'Crear Usuario'}
             </Button>
           </form>
         </CardContent>
@@ -120,6 +152,7 @@ const UserManagement: React.FC = () => {
               <thead className="bg-white/5 border-b border-white/10 text-xs text-gray-400 uppercase">
                 <tr>
                   <th className="px-6 py-3">Usuario</th>
+                  <th className="px-6 py-3">Contraseña</th>
                   <th className="px-6 py-3">Rol</th>
                   <th className="px-6 py-3">Centro Asignado</th>
                   <th className="px-6 py-3 text-right">Acciones</th>
@@ -127,8 +160,11 @@ const UserManagement: React.FC = () => {
               </thead>
               <tbody className="divide-y divide-white/10">
                 {users.map((u) => (
-                  <tr key={u.username} className="hover:bg-white/5 transition-colors">
+                  <tr key={u.username} className={`hover:bg-white/5 transition-colors ${editingUsername === u.username ? 'bg-primary/10' : ''}`}>
                     <td className="px-6 py-4 font-medium">{u.username}</td>
+                    <td className="px-6 py-4 text-gray-500 font-mono text-xs">
+                        ••••••••
+                    </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-1.5">
                         <Shield className={`w-3.5 h-3.5 ${u.role === 'admin' ? 'text-primary' : 'text-gray-400'}`} />
@@ -142,14 +178,24 @@ const UserManagement: React.FC = () => {
                       </div>
                     </td>
                     <td className="px-6 py-4 text-right">
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        className="text-red-400 hover:text-red-300 hover:bg-red-400/10"
-                        onClick={() => handleDeleteUser(u.username)}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
+                      <div className="flex justify-end gap-2">
+                        <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="text-primary hover:bg-primary/10"
+                            onClick={() => handleEditClick(u)}
+                        >
+                            <Pencil className="w-4 h-4" />
+                        </Button>
+                        <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="text-red-400 hover:text-red-300 hover:bg-red-400/10"
+                            onClick={() => handleDeleteUser(u.username)}
+                        >
+                            <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
                     </td>
                   </tr>
                 ))}
