@@ -33,13 +33,13 @@ const AuthenticatedApp: React.FC = () => {
   const [affiliationFilter, setAffiliationFilter] = useState('todos');
   const [voteStatusFilter, setVoteStatusFilter] = useState('todos');
   const [centerFilter, setCenterFilter] = useState(currentUser.role === 'mesa' ? currentUser.center : 'todos');
-  
+
   const loadFromSheet = useCallback(async () => {
     if (!SHEET_CSV_URL || !SHEET_CSV_URL.includes('spreadsheets')) {
-        setError('Configuración de enlace no válida.');
-        return;
+      setError('Configuración de enlace no válida.');
+      return;
     }
-    
+
     setIsLoading(true);
     setError(null);
     try {
@@ -64,18 +64,30 @@ const AuthenticatedApp: React.FC = () => {
 
   const handleVoterStatusChange = useCallback(async (voterId: number, hasVoted: boolean) => {
     const result = await voterService.updateVoterStatus(voterId, hasVoted);
-    if(result.success) {
-        setAllVoters(prevVoters => 
-            prevVoters.map(v => 
-                v.id === voterId ? { ...v, haVotado: hasVoted, horaVoto: result.horaVoto } : v
-            )
-        );
+
+    if (result.success) {
+      // Actualizar estado local
+      setAllVoters(prevVoters =>
+        prevVoters.map(v =>
+          v.id === voterId ? { ...v, haVotado: hasVoted, horaVoto: result.horaVoto } : v
+        )
+      );
+
+      // Si hay un error pero success es true, mostrar advertencia
+      if (result.error) {
+        setError(result.error);
+        setTimeout(() => setError(null), 5000);
+      }
+    } else {
+      // Mostrar error al usuario
+      setError(result.error || 'Error al actualizar el estado del votante');
+      setTimeout(() => setError(null), 5000);
     }
   }, [setAllVoters]);
 
   const votersForUser = useMemo(() => {
     if (currentUser.role === 'mesa') {
-        return allVoters.filter(v => v.centroVotacion === currentUser.center);
+      return allVoters.filter(v => v.centroVotacion === currentUser.center);
     }
     return allVoters;
   }, [allVoters, currentUser]);
@@ -101,12 +113,12 @@ const AuthenticatedApp: React.FC = () => {
       })
       .filter(voter => {
         if (currentUser.role === 'admin' && centerFilter !== 'todos') {
-            return voter.centroVotacion === centerFilter;
+          return voter.centroVotacion === centerFilter;
         }
-        return true; 
+        return true;
       });
   }, [votersForUser, searchTerm, affiliationFilter, voteStatusFilter, centerFilter, currentUser.role]);
-  
+
   const votingCenters = useMemo(() => ['todos', ...VOTING_CENTERS], []);
 
   const totalVoters = votersForUser.length;
@@ -118,57 +130,57 @@ const AuthenticatedApp: React.FC = () => {
 
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div className="flex flex-col gap-2">
-            {currentUser.role === 'admin' && (
-                <div className="flex gap-2 bg-card p-1 border border-white/10 rounded-lg w-fit">
-                <Button 
-                    variant={activeTab === 'voters' ? 'default' : 'ghost'} 
-                    size="sm"
-                    onClick={() => setActiveTab('voters')}
-                >
-                    <Users className="w-4 h-4 mr-2" />
-                    Censo
-                </Button>
-                <Button 
-                    variant={activeTab === 'users' ? 'default' : 'ghost'} 
-                    size="sm"
-                    onClick={() => setActiveTab('users')}
-                >
-                    <UserCog className="w-4 h-4 mr-2" />
-                    Usuarios
-                </Button>
-                </div>
-            )}
-            {lastSync && (
-                <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase tracking-wider ml-1">
-                    <Clock className="w-3 h-3" />
-                    Sincronizado: {lastSync}
-                </div>
-            )}
+          {currentUser.role === 'admin' && (
+            <div className="flex gap-2 bg-card p-1 border border-white/10 rounded-lg w-fit">
+              <Button
+                variant={activeTab === 'voters' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setActiveTab('voters')}
+              >
+                <Users className="w-4 h-4 mr-2" />
+                Censo
+              </Button>
+              <Button
+                variant={activeTab === 'users' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setActiveTab('users')}
+              >
+                <UserCog className="w-4 h-4 mr-2" />
+                Usuarios
+              </Button>
+            </div>
+          )}
+          {lastSync && (
+            <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase tracking-wider ml-1">
+              <Clock className="w-3 h-3" />
+              Sincronizado: {lastSync}
+            </div>
+          )}
         </div>
 
         <div className="flex items-center gap-2">
-            {error && (
-                <span className="flex items-center gap-1 text-xs text-red-400 bg-red-400/10 px-2 py-1 rounded">
-                    <AlertCircle className="w-3 h-3" /> {error}
-                </span>
-            )}
-            <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={loadFromSheet} 
-                disabled={isLoading}
-                className="gap-2 bg-white/5"
-            >
-                <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
-                {isLoading ? 'Sincronizando...' : 'Refrescar Datos'}
-            </Button>
+          {error && (
+            <span className="flex items-center gap-1 text-xs text-red-400 bg-red-400/10 px-2 py-1 rounded">
+              <AlertCircle className="w-3 h-3" /> {error}
+            </span>
+          )}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={loadFromSheet}
+            disabled={isLoading}
+            className="gap-2 bg-white/5"
+          >
+            <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
+            {isLoading ? 'Sincronizando...' : 'Refrescar Datos'}
+          </Button>
         </div>
       </div>
 
       {activeTab === 'voters' ? (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <aside className="lg:col-span-1 flex flex-col gap-6">
-            <SummaryCard 
+            <SummaryCard
               totalVoters={totalVoters}
               votersWhoVoted={votersWhoVoted}
             />
@@ -177,28 +189,28 @@ const AuthenticatedApp: React.FC = () => {
 
           <main className="lg:col-span-2 flex flex-col gap-6">
             <FilterControls
-                searchTerm={searchTerm}
-                setSearchTerm={setSearchTerm}
-                affiliationFilter={affiliationFilter}
-                setAffiliationFilter={setAffiliationFilter}
-                voteStatusFilter={voteStatusFilter}
-                setVoteStatusFilter={setVoteStatusFilter}
-                centerFilter={centerFilter}
-                setCenterFilter={setCenterFilter}
-                votingCenters={votingCenters}
-                user={currentUser}
-                filteredVoters={filteredVoters}
+              searchTerm={searchTerm}
+              setSearchTerm={setSearchTerm}
+              affiliationFilter={affiliationFilter}
+              setAffiliationFilter={setAffiliationFilter}
+              voteStatusFilter={voteStatusFilter}
+              setVoteStatusFilter={setVoteStatusFilter}
+              centerFilter={centerFilter}
+              setCenterFilter={setCenterFilter}
+              votingCenters={votingCenters}
+              user={currentUser}
+              filteredVoters={filteredVoters}
             />
             {isLoading && allVoters.length === 0 ? (
-                <div className="p-12 text-center text-gray-400 border border-dashed border-white/10 rounded-xl">
-                    <RefreshCw className="w-8 h-8 mx-auto mb-3 animate-spin text-primary" />
-                    Cargando censo desde FIBSAL...
-                </div>
+              <div className="p-12 text-center text-gray-400 border border-dashed border-white/10 rounded-xl">
+                <RefreshCw className="w-8 h-8 mx-auto mb-3 animate-spin text-primary" />
+                Cargando censo desde FIBSAL...
+              </div>
             ) : (
-                <VoterList 
-                    voters={filteredVoters} 
-                    onStatusChange={handleVoterStatusChange} 
-                />
+              <VoterList
+                voters={filteredVoters}
+                onStatusChange={handleVoterStatusChange}
+              />
             )}
           </main>
         </div>

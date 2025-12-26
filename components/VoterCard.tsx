@@ -17,7 +17,7 @@ const VoterCard: React.FC<VoterCardProps> = ({ voter, onStatusChange }) => {
     return (
         <AccordionItem value={`voter-${voter.id}`}>
             <AccordionTrigger>
-                 <div className="flex items-center justify-between w-full">
+                <div className="flex items-center justify-between w-full">
                     <span className="font-semibold text-lg">{fullName}</span>
                     <div className="flex items-center gap-2">
                         {voter.afiliadoUGT && <Badge variant="default">Afiliado</Badge>}
@@ -32,20 +32,20 @@ const VoterCard: React.FC<VoterCardProps> = ({ voter, onStatusChange }) => {
             <AccordionContent>
                 <div className="text-sm text-gray-300 space-y-4">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                         <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2">
                             <Mail className="w-4 h-4 text-primary" />
                             <span>{voter.email}</span>
                         </div>
-                         <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2">
                             <Phone className="w-4 h-4 text-primary" />
                             <span>{voter.telefono}</span>
                         </div>
-                         <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2">
                             <MapPin className="w-4 h-4 text-primary" />
                             <span>{voter.centroVotacion}</span>
                         </div>
                         {voter.haVotado && voter.horaVoto && (
-                             <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2">
                                 <ThumbsUp className="w-4 h-4 text-accent" />
                                 <span>Votó a las: {voter.horaVoto}</span>
                             </div>

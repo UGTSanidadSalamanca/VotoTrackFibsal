@@ -12,6 +12,10 @@ export const VOTING_CENTERS = ['FIBSAL'];
 // URL de Google Sheets publicada como CSV
 export const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRy-HnFld2JQ1YDLHwUSA5gW7_wnraAxtTnNFF_2kJboKbKXzU-7zWNw3AhfWw8qu-MEbUZLpdsFUwt/pub?gid=1730602343&single=true&output=csv';
 
+// URL del Google Apps Script Web App para escribir datos
+// IMPORTANTE: Reemplazar con la URL real después de desplegar el script
+export const SHEET_WRITE_URL = 'https://script.google.com/macros/s/AKfycbzRMrXpbaOmya_flZTLzdTe3-jcG2LcO0HCU8s9vv9Xi1xahx4JQ99vW9EUxmFm6o1r/exec';
+
 export const voterService = {
   fetchFromSheet: async (url: string): Promise<Voter[]> => {
     try {
@@ -57,12 +61,39 @@ export const voterService = {
       throw error;
     }
   },
-  updateVoterStatus: (voterId: number, hasVoted: boolean): Promise<{ success: boolean; horaVoto: string | null }> => {
-    return new Promise(resolve => {
-      setTimeout(() => {
-        resolve({ success: true, horaVoto: hasVoted ? new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }) : null });
-      }, 300);
-    });
+  updateVoterStatus: async (voterId: number, hasVoted: boolean): Promise<{ success: boolean; horaVoto: string | null; error?: string }> => {
+    const horaVoto = hasVoted ? new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }) : null;
+
+    try {
+      // Usar no-cors para evitar problemas de CORS con Google Apps Script
+      // Nota: Con no-cors no podemos leer la respuesta, pero el script se ejecutará
+      await fetch(SHEET_WRITE_URL, {
+        method: 'POST',
+        mode: 'no-cors', // Importante: evita bloqueo de CORS
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          voterId,
+          hasVoted,
+          horaVoto
+        })
+      });
+
+      // Con no-cors, asumimos que la petición fue exitosa
+      // El script de Google se ejecutará en segundo plano
+      console.log('Petición enviada a Google Sheets');
+      return { success: true, horaVoto };
+
+    } catch (error) {
+      console.error('Error al actualizar Google Sheet:', error);
+      // Incluso con error de red, actualizamos localmente
+      return {
+        success: true,
+        horaVoto,
+        error: 'Actualizado localmente. Verifica la conexión con Google Sheets'
+      };
+    }
   },
   sendReminder: (voterId: number): Promise<{ success: boolean }> => {
     return new Promise(resolve => {
