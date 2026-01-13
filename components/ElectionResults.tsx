@@ -123,8 +123,6 @@ const ElectionResults: React.FC<ElectionResultsProps> = ({ censusTotal }) => {
             const element = reportRef.current;
             if (!element) return;
 
-            // Importante: El elemento debe ser visible para html2canvas
-            // Pero lo tenemos fuera de la pantalla con CSS
             const canvas = await html2canvas(element, {
                 scale: 2,
                 useCORS: true,
@@ -136,11 +134,21 @@ const ElectionResults: React.FC<ElectionResultsProps> = ({ censusTotal }) => {
             const pdfWidth = pdf.internal.pageSize.getWidth();
             const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
 
-            pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+            // Si la altura del contenido supera un A4 (297mm), lo escalamos un poco para que quepa o permitimos una segunda página.
+            // Pero mejor escalamos para que quepa en una sola si es posible y no es excesivo.
+            const pageHeight = pdf.internal.pageSize.getHeight();
+
+            if (pdfHeight > pageHeight) {
+                // Opción A: Escalar para ajustar
+                pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pageHeight - 10);
+            } else {
+                pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+            }
+
             pdf.save(`Informe_Elecciones_Fibsal_${new Date().toISOString().split('T')[0]}.pdf`);
         } catch (error) {
             console.error('Error generating PDF:', error);
-            alert('Error técnico al generar el PDF. Por favor, usa la opción de "Imprimir" y elige "Guardar como PDF".');
+            alert('Error técnico al generar el PDF.');
         } finally {
             setIsGeneratingPDF(false);
         }
@@ -154,7 +162,6 @@ const ElectionResults: React.FC<ElectionResultsProps> = ({ censusTotal }) => {
 
     return (
         <div className="space-y-6 animate-in fade-in duration-500">
-            {/* Botones de acción (Heredan estilos de la aplicación) */}
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-white/5 pb-6 print:hidden">
                 <div>
                     <h2 className="text-3xl font-black text-white tracking-tight">Escrutinio y Estadística</h2>
@@ -190,10 +197,10 @@ const ElectionResults: React.FC<ElectionResultsProps> = ({ censusTotal }) => {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 print:hidden">
-                {/* Input Card */}
+                {/* UI normal del cálculo */}
                 <Card className="md:col-span-1 border-white/10 bg-white/5 backdrop-blur-sm shadow-xl">
                     <CardHeader>
-                        <CardTitle className="flex items-center gap-2 text-lg font-bold">
+                        <CardTitle className="flex items-center gap-2 text-lg font-bold text-white">
                             <Calculator className="w-5 h-5 text-primary" />
                             Introducir Votos
                         </CardTitle>
@@ -259,10 +266,9 @@ const ElectionResults: React.FC<ElectionResultsProps> = ({ censusTotal }) => {
                     </CardContent>
                 </Card>
 
-                {/* Results Stats Panel */}
                 <div className="md:col-span-2 space-y-6">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <Card className="border-white/10 bg-white/5 border-l-4 border-l-primary">
+                        <Card className="border-white/10 bg-white/5">
                             <CardContent className="pt-6">
                                 <div className="flex items-center justify-between">
                                     <div>
@@ -271,160 +277,44 @@ const ElectionResults: React.FC<ElectionResultsProps> = ({ censusTotal }) => {
                                             {calculation.participation.toFixed(2)}%
                                         </h3>
                                     </div>
-                                    <div className="p-3 bg-white/5 rounded-xl">
-                                        <PieChart className="w-8 h-8 text-primary" />
-                                    </div>
+                                    <PieChart className="w-8 h-8 text-primary opacity-50" />
                                 </div>
                             </CardContent>
                         </Card>
-
-                        <Card className="border-white/10 bg-white/5 border-l-4 border-l-green-500">
+                        <Card className="border-white/10 bg-white/5">
                             <CardContent className="pt-6">
                                 <div className="flex items-center justify-between">
                                     <div>
                                         <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Delegados</p>
                                         <h3 className="text-4xl font-black text-white">9</h3>
                                     </div>
-                                    <div className="p-3 bg-white/5 rounded-xl">
-                                        <TrendingUp className="w-8 h-8 text-green-500" />
-                                    </div>
+                                    <TrendingUp className="w-8 h-8 text-green-500 opacity-50" />
                                 </div>
                             </CardContent>
                         </Card>
                     </div>
 
                     <Card className="border-white/10 bg-white/5 overflow-hidden">
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-left">
-                                <thead>
-                                    <tr className="bg-white/5 text-[10px] uppercase tracking-widest text-gray-500 border-b border-white/10">
-                                        <th className="px-6 py-4 font-black">Sindicato</th>
-                                        <th className="px-6 py-4 font-black text-center">Votos</th>
-                                        <th className="px-6 py-4 font-black text-center">%</th>
-                                        <th className="px-6 py-4 font-black text-right">Escaños</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-white/5">
-                                    {calculation.distribution.length > 0 ? (
-                                        calculation.distribution.map((list) => (
-                                            <tr key={list.name} className="hover:bg-white/5 transition-all">
-                                                <td className="px-6 py-4">
-                                                    <div className="flex items-center gap-3">
-                                                        <div className={`w-1 h-8 rounded-full ${list.color}`} />
-                                                        <span className="font-black text-white text-lg">{list.name}</span>
-                                                    </div>
-                                                </td>
-                                                <td className="px-6 py-4 text-center font-mono text-xl text-white">{list.votes}</td>
-                                                <td className="px-6 py-4 text-center text-gray-400 font-bold">
-                                                    {calculation.validVotes > 0 ? ((list.votes / calculation.validVotes) * 100).toFixed(1) : 0}%
-                                                </td>
-                                                <td className="px-6 py-4 text-right">
-                                                    <span className="inline-block w-10 h-10 leading-10 text-center bg-primary/20 border border-primary/30 text-primary text-2xl font-black rounded-lg">
-                                                        {list.seats}
-                                                    </span>
-                                                </td>
-                                            </tr>
-                                        ))
-                                    ) : (
-                                        <tr>
-                                            <td colSpan={4} className="px-6 py-16 text-center text-gray-500 italic">
-                                                Sin datos suficientes para el reparto.
-                                            </td>
-                                        </tr>
-                                    )}
-                                </tbody>
-                            </table>
-                        </div>
-                    </Card>
-                </div>
-            </div>
-
-            {/* REPORTE PARA IMPRESIÓN Y PDF (Fuera de pantalla pero capturable) */}
-            <div
-                style={{
-                    position: 'absolute',
-                    top: '-9999px', // Fuera de la vista
-                    left: '0',
-                    width: '210mm',
-                    backgroundColor: '#ffffff'
-                }}
-                className="print-report-container"
-            >
-                <div ref={reportRef} className="p-16 text-black font-sans bg-white min-h-[297mm]">
-                    <div className="flex justify-between items-start border-b-[6px] border-red-600 pb-8 mb-10">
-                        <div>
-                            <h1 className="text-5xl font-black uppercase tracking-tighter text-red-600 mb-1">Informe Electoral</h1>
-                            <p className="text-2xl font-bold text-gray-700">FIBSAL - Resultados de Votación</p>
-                        </div>
-                        <div className="text-right">
-                            <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-1">Emisión del Informe</p>
-                            <p className="text-xl font-black">{new Date().toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' })}</p>
-                        </div>
-                    </div>
-
-                    <div className="grid grid-cols-3 gap-6 mb-12">
-                        <div className="p-8 bg-gray-100 rounded-3xl">
-                            <p className="text-xs font-black text-gray-500 uppercase tracking-widest mb-2">Censo Electoral</p>
-                            <p className="text-5xl font-black">{censusTotal}</p>
-                        </div>
-                        <div className="p-8 bg-gray-100 rounded-3xl">
-                            <p className="text-xs font-black text-gray-500 uppercase tracking-widest mb-2">Votos Totales</p>
-                            <p className="text-5xl font-black">{calculation.totalVotes}</p>
-                        </div>
-                        <div className="p-8 bg-gray-100 rounded-3xl border-2 border-red-100">
-                            <p className="text-xs font-black text-gray-500 uppercase tracking-widest mb-2">Participación</p>
-                            <p className="text-5xl font-black text-red-600">{calculation.participation.toFixed(2)}%</p>
-                        </div>
-                    </div>
-
-                    <div className="mb-12">
-                        <h3 className="text-xl font-black uppercase tracking-widest mb-6 border-b-2 border-gray-100 pb-2">Distribución de Papeletas</h3>
-                        <table className="w-full text-lg">
-                            <tbody className="divide-y divide-gray-100">
-                                <tr>
-                                    <td className="py-4 font-bold text-gray-600 uppercase text-sm tracking-wider">Votos a Candidaturas</td>
-                                    <td className="py-4 text-right font-black text-2xl">{results.ugt + results.ccoo + results.csif}</td>
-                                </tr>
-                                <tr>
-                                    <td className="py-4 font-bold text-gray-600 uppercase text-sm tracking-wider">Votos Blancos</td>
-                                    <td className="py-4 text-right font-black text-2xl">{results.blank}</td>
-                                </tr>
-                                <tr className="bg-gray-50 px-4">
-                                    <td className="py-5 font-black text-black uppercase text-base tracking-widest">SUBTOTAL VOTOS VÁLIDOS</td>
-                                    <td className="py-5 text-right font-black text-3xl text-red-600">{calculation.validVotes}</td>
-                                </tr>
-                                <tr>
-                                    <td className="py-4 font-bold text-gray-400 uppercase text-xs tracking-widest italic">Votos Nulos</td>
-                                    <td className="py-4 text-right font-bold text-gray-400 text-xl italic">{results.null}</td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-
-                    <div>
-                        <h3 className="text-xl font-black uppercase tracking-widest mb-6 border-b-2 border-gray-100 pb-2">Reparto de Representantes (Delegados)</h3>
                         <table className="w-full text-left">
                             <thead>
-                                <tr className="text-xs font-black uppercase tracking-widest text-gray-400 border-b border-gray-200">
-                                    <th className="py-4 px-2">Candidatura</th>
-                                    <th className="py-4 text-center">Votos</th>
-                                    <th className="py-4 text-center">% S/ Válidos</th>
-                                    <th className="py-4 text-right">Delegados Obt.</th>
+                                <tr className="bg-white/5 text-[10px] uppercase font-black text-gray-500 border-b border-white/10">
+                                    <th className="px-6 py-4">Sindicato</th>
+                                    <th className="px-6 py-4 text-center">Votos</th>
+                                    <th className="px-6 py-4 text-right">Escaños</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-gray-50">
+                            <tbody className="divide-y divide-white/5">
                                 {calculation.distribution.map((list) => (
                                     <tr key={list.name}>
-                                        <td className="py-6 px-2">
-                                            <div className="flex items-center gap-4">
-                                                <div className="w-2 h-10 rounded-full" style={{ backgroundColor: list.barColor }} />
-                                                <span className="text-2xl font-black">{list.name}</span>
+                                        <td className="px-6 py-4">
+                                            <div className="flex items-center gap-3">
+                                                <div className={`w-1 h-6 rounded-full ${list.color}`} />
+                                                <span className="font-bold text-white uppercase text-sm">{list.name}</span>
                                             </div>
                                         </td>
-                                        <td className="py-6 text-center text-2xl font-mono font-bold">{list.votes}</td>
-                                        <td className="py-6 text-center text-gray-500 font-bold text-lg">{((list.votes / calculation.validVotes) * 100).toFixed(1)}%</td>
-                                        <td className="py-6 text-right">
-                                            <span className="inline-block px-8 py-3 bg-black text-white text-3xl font-black rounded-2xl shadow-lg">
+                                        <td className="px-6 py-4 text-center font-mono text-xl text-white">{list.votes}</td>
+                                        <td className="px-6 py-4 text-right">
+                                            <span className="bg-primary/20 text-primary px-3 py-1 rounded font-black text-xl">
                                                 {list.seats}
                                             </span>
                                         </td>
@@ -432,15 +322,120 @@ const ElectionResults: React.FC<ElectionResultsProps> = ({ censusTotal }) => {
                                 ))}
                             </tbody>
                         </table>
-                        <div className="mt-8 p-4 bg-gray-50 rounded-xl text-center">
-                            <p className="text-xs font-bold text-gray-400 uppercase tracking-[0.2em]">Criterio Aplicado: Sistema de Restos Mayores (Coeficiente de Representación Circular)</p>
+                    </Card>
+                </div>
+            </div>
+
+            {/* REPORTE COMPACTO PARA PDF E IMPRESIÓN */}
+            <div
+                style={{
+                    position: 'absolute',
+                    top: '-9999px',
+                    left: '0',
+                    width: '210mm',
+                    backgroundColor: '#ffffff'
+                }}
+                className="print-report-container"
+            >
+                <div ref={reportRef} className="p-10 text-black font-sans bg-white border-[10px] border-gray-50" style={{ width: '210mm' }}>
+                    {/* Cabecera más compacta */}
+                    <div className="flex justify-between items-end border-b-4 border-red-600 pb-4 mb-6">
+                        <div>
+                            <h1 className="text-4xl font-black uppercase tracking-tighter text-red-600 leading-none">Acta de Resultados</h1>
+                            <p className="text-lg font-bold text-gray-600">FIBSAL - Elecciones Sindicales</p>
+                        </div>
+                        <div className="text-right">
+                            <p className="text-[10px] font-black text-gray-400 uppercase">Fecha de emisión</p>
+                            <p className="text-base font-black">{new Date().toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' })}</p>
                         </div>
                     </div>
 
-                    <div className="mt-auto pt-20 text-center">
-                        <div className="inline-block border-t-2 border-gray-100 pt-4 px-12">
-                            <p className="text-[10px] font-black text-gray-300 uppercase tracking-[0.4em]">Autenticado por Sistema VotoTrack FIBSAL</p>
+                    {/* Grid de KPIs más pequeño */}
+                    <div className="grid grid-cols-3 gap-4 mb-6">
+                        <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
+                            <p className="text-[10px] font-black text-gray-500 uppercase mb-1">Censo</p>
+                            <p className="text-3xl font-black">{censusTotal}</p>
                         </div>
+                        <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
+                            <p className="text-[10px] font-black text-gray-500 uppercase mb-1">Votos Emitidos</p>
+                            <p className="text-3xl font-black">{calculation.totalVotes}</p>
+                        </div>
+                        <div className="p-4 bg-red-50 rounded-xl border border-red-100">
+                            <p className="text-[10px] font-black text-red-700 uppercase mb-1">Participación</p>
+                            <p className="text-3xl font-black text-red-600">{calculation.participation.toFixed(2)}%</p>
+                        </div>
+                    </div>
+
+                    {/* Sección de desglose */}
+                    <div className="mb-6">
+                        <h3 className="text-xs font-black uppercase tracking-widest mb-3 text-gray-400 border-b border-gray-100 pb-1">Análisis de Votación</h3>
+                        <div className="grid grid-cols-2 gap-8">
+                            <table className="w-full text-sm">
+                                <tbody>
+                                    <tr className="border-b border-gray-50">
+                                        <td className="py-2 font-bold text-gray-600">Votos a candidaturas</td>
+                                        <td className="py-2 text-right font-black">{results.ugt + results.ccoo + results.csif}</td>
+                                    </tr>
+                                    <tr className="border-b border-gray-50">
+                                        <td className="py-2 font-bold text-gray-600">Votos Blancos</td>
+                                        <td className="py-2 text-right font-black">{results.blank}</td>
+                                    </tr>
+                                    <tr>
+                                        <td className="py-3 font-black text-black text-base">TOTAL VOTOS VÁLIDOS</td>
+                                        <td className="py-3 text-right font-black text-2xl text-red-600">{calculation.validVotes}</td>
+                                    </tr>
+                                    <tr className="text-gray-400 italic">
+                                        <td className="py-1 font-bold">Votos Nulos (no válidos)</td>
+                                        <td className="py-1 text-right font-bold">{results.null}</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                            <div className="bg-gray-50 p-4 rounded-xl flex flex-col justify-center border border-gray-100">
+                                <p className="text-[10px] font-black text-gray-500 uppercase mb-1">Barrera Electoral (5%)</p>
+                                <p className="text-xl font-black">{calculation.threshold.toFixed(2)} votos</p>
+                                <p className="text-[9px] text-gray-400 mt-1 leading-tight">Mínimo para participar en la adjudicación de representantes.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Tabla de reparto principal */}
+                    <div className="mb-8">
+                        <h3 className="text-xs font-black uppercase tracking-widest mb-3 text-gray-400 border-b border-gray-100 pb-1">Adjudicación de Representantes (9 Delegados)</h3>
+                        <table className="w-full text-left">
+                            <thead>
+                                <tr className="text-[9px] font-black uppercase tracking-widest text-gray-400 border-b border-gray-200">
+                                    <th className="py-2 px-2">Candidatura</th>
+                                    <th className="py-2 text-center">Votos</th>
+                                    <th className="py-2 text-center">% Válidos</th>
+                                    <th className="py-2 text-right">Delegados</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-50">
+                                {calculation.distribution.map((list) => (
+                                    <tr key={list.name}>
+                                        <td className="py-4 px-2">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-1.5 h-8 rounded-full" style={{ backgroundColor: list.barColor }} />
+                                                <span className="text-xl font-black uppercase">{list.name}</span>
+                                            </div>
+                                        </td>
+                                        <td className="py-4 text-center text-xl font-bold">{list.votes}</td>
+                                        <td className="py-4 text-center text-gray-500 font-bold">{((list.votes / calculation.validVotes) * 100).toFixed(1)}%</td>
+                                        <td className="py-4 text-right">
+                                            <span className="inline-block px-5 py-2 bg-black text-white text-2xl font-black rounded-lg">
+                                                {list.seats}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    {/* Footer del reporte */}
+                    <div className="mt-8 pt-6 border-t border-gray-100 flex justify-between items-center text-[9px] font-bold text-gray-300 uppercase tracking-widest">
+                        <p>Sistema VotoTrack FIBSAL</p>
+                        <p>Documento Informativo de Resultados Electorales</p>
                     </div>
                 </div>
             </div>
@@ -448,7 +443,6 @@ const ElectionResults: React.FC<ElectionResultsProps> = ({ censusTotal }) => {
             <style dangerouslySetInnerHTML={{
                 __html: `
         @media print {
-          /* Ocultar todo lo que no sea el reporte */
           body * { visibility: hidden; }
           .print-report-container, .print-report-container * { 
             visibility: visible !important;
@@ -461,10 +455,10 @@ const ElectionResults: React.FC<ElectionResultsProps> = ({ censusTotal }) => {
             width: 100% !important;
             margin: 0 !important;
             padding: 0 !important;
+            background: white !important;
           }
-          /* Forzar fondo blanco e imprimir colores */
-          html, body { background: white !important; }
-          * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+          html, body { background: white !important; height: auto !important; overflow: visible !important; }
+          @page { size: auto; margin: 0; }
         }
       `}} />
         </div>
