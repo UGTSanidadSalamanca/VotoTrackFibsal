@@ -134,15 +134,13 @@ const ElectionResults: React.FC<ElectionResultsProps> = ({ censusTotal }) => {
             const pdfWidth = pdf.internal.pageSize.getWidth();
             const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
 
-            // Si la altura del contenido supera un A4 (297mm), lo escalamos un poco para que quepa o permitimos una segunda página.
-            // Pero mejor escalamos para que quepa en una sola si es posible y no es excesivo.
             const pageHeight = pdf.internal.pageSize.getHeight();
 
             if (pdfHeight > pageHeight) {
-                // Opción A: Escalar para ajustar
-                pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pageHeight - 10);
+                // Reducimos un pelín el ancho para asegurar márgenes laterales en el PDF y escalamos alto
+                pdf.addImage(imgData, 'PNG', 5, 5, pdfWidth - 10, pageHeight - 15);
             } else {
-                pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+                pdf.addImage(imgData, 'PNG', 5, 5, pdfWidth - 10, pdfHeight);
             }
 
             pdf.save(`Informe_Elecciones_Fibsal_${new Date().toISOString().split('T')[0]}.pdf`);
@@ -326,103 +324,103 @@ const ElectionResults: React.FC<ElectionResultsProps> = ({ censusTotal }) => {
                 </div>
             </div>
 
-            {/* REPORTE COMPACTO PARA PDF E IMPRESIÓN */}
+            {/* REPORTE ULTRACONCENTRADO PARA PDF E IMPRESIÓN */}
             <div
                 style={{
                     position: 'absolute',
                     top: '-9999px',
                     left: '0',
-                    width: '210mm',
+                    width: '190mm', // Un poco más estrecho para evitar cortes laterales
                     backgroundColor: '#ffffff'
                 }}
                 className="print-report-container"
             >
-                <div ref={reportRef} className="p-10 text-black font-sans bg-white border-[10px] border-gray-50" style={{ width: '210mm' }}>
-                    {/* Cabecera más compacta */}
-                    <div className="flex justify-between items-end border-b-4 border-red-600 pb-4 mb-6">
+                <div ref={reportRef} className="p-6 text-black font-sans bg-white" style={{ width: '190mm' }}>
+                    {/* Cabecera */}
+                    <div className="flex justify-between items-end border-b-2 border-red-600 pb-2 mb-4">
                         <div>
-                            <h1 className="text-4xl font-black uppercase tracking-tighter text-red-600 leading-none">Acta de Resultados</h1>
-                            <p className="text-lg font-bold text-gray-600">FIBSAL - Elecciones Sindicales</p>
+                            <h1 className="text-3xl font-black uppercase tracking-tighter text-red-600 leading-none">ACTA DE ESCRUTINIO</h1>
+                            <p className="text-base font-bold text-gray-600">FIBSAL - Resultados Oficiales</p>
                         </div>
                         <div className="text-right">
-                            <p className="text-[10px] font-black text-gray-400 uppercase">Fecha de emisión</p>
-                            <p className="text-base font-black">{new Date().toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' })}</p>
+                            <p className="text-[10px] font-black text-gray-400 uppercase">Emisión</p>
+                            <p className="text-sm font-black">{new Date().toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' })}</p>
                         </div>
                     </div>
 
-                    {/* Grid de KPIs más pequeño */}
-                    <div className="grid grid-cols-3 gap-4 mb-6">
-                        <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
-                            <p className="text-[10px] font-black text-gray-500 uppercase mb-1">Censo</p>
-                            <p className="text-3xl font-black">{censusTotal}</p>
+                    {/* Estadísticas clave */}
+                    <div className="grid grid-cols-3 gap-3 mb-4">
+                        <div className="p-3 bg-gray-50 rounded-lg border border-gray-100 flex flex-col justify-center">
+                            <p className="text-[9px] font-black text-gray-500 uppercase leading-none mb-1">Censo</p>
+                            <p className="text-2xl font-black leading-none">{censusTotal}</p>
                         </div>
-                        <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
-                            <p className="text-[10px] font-black text-gray-500 uppercase mb-1">Votos Emitidos</p>
-                            <p className="text-3xl font-black">{calculation.totalVotes}</p>
+                        <div className="p-3 bg-gray-100 rounded-lg border border-gray-200 flex flex-col justify-center">
+                            <p className="text-[9px] font-black text-gray-500 uppercase leading-none mb-1">Escrutados</p>
+                            <p className="text-2xl font-black leading-none">{calculation.totalVotes}</p>
                         </div>
-                        <div className="p-4 bg-red-50 rounded-xl border border-red-100">
-                            <p className="text-[10px] font-black text-red-700 uppercase mb-1">Participación</p>
-                            <p className="text-3xl font-black text-red-600">{calculation.participation.toFixed(2)}%</p>
+                        <div className="p-3 bg-red-50 rounded-lg border border-red-100 flex flex-col justify-center">
+                            <p className="text-[9px] font-black text-red-700 uppercase leading-none mb-1">Participación</p>
+                            <p className="text-2xl font-black text-red-600 leading-none">{calculation.participation.toFixed(2)}%</p>
                         </div>
                     </div>
 
-                    {/* Sección de desglose */}
-                    <div className="mb-6">
-                        <h3 className="text-xs font-black uppercase tracking-widest mb-3 text-gray-400 border-b border-gray-100 pb-1">Análisis de Votación</h3>
-                        <div className="grid grid-cols-2 gap-8">
-                            <table className="w-full text-sm">
+                    {/* Análisis de votos */}
+                    <div className="mb-4">
+                        <h3 className="text-[10px] font-black uppercase tracking-widest mb-2 text-gray-300 border-b border-gray-50 pb-1">RESULTADOS DE VOTO</h3>
+                        <div className="flex gap-6 items-start">
+                            <table className="flex-1 text-xs">
                                 <tbody>
                                     <tr className="border-b border-gray-50">
-                                        <td className="py-2 font-bold text-gray-600">Votos a candidaturas</td>
-                                        <td className="py-2 text-right font-black">{results.ugt + results.ccoo + results.csif}</td>
+                                        <td className="py-1.5 font-bold text-gray-600">Votos a Candidaturas</td>
+                                        <td className="py-1.5 text-right font-black">{results.ugt + results.ccoo + results.csif}</td>
                                     </tr>
                                     <tr className="border-b border-gray-50">
-                                        <td className="py-2 font-bold text-gray-600">Votos Blancos</td>
-                                        <td className="py-2 text-right font-black">{results.blank}</td>
+                                        <td className="py-1.5 font-bold text-gray-600">Votos en Blanco</td>
+                                        <td className="py-1.5 text-right font-black">{results.blank}</td>
                                     </tr>
                                     <tr>
-                                        <td className="py-3 font-black text-black text-base">TOTAL VOTOS VÁLIDOS</td>
-                                        <td className="py-3 text-right font-black text-2xl text-red-600">{calculation.validVotes}</td>
+                                        <td className="py-2 font-black text-black text-sm">VOTOS VÁLIDOS EMITIDOS</td>
+                                        <td className="py-2 text-right font-black text-xl text-red-600">{calculation.validVotes}</td>
                                     </tr>
-                                    <tr className="text-gray-400 italic">
-                                        <td className="py-1 font-bold">Votos Nulos (no válidos)</td>
+                                    <tr className="text-gray-400 text-[10px] italic">
+                                        <td className="py-1">Papeletas Nulas / Otros</td>
                                         <td className="py-1 text-right font-bold">{results.null}</td>
                                     </tr>
                                 </tbody>
                             </table>
-                            <div className="bg-gray-50 p-4 rounded-xl flex flex-col justify-center border border-gray-100">
-                                <p className="text-[10px] font-black text-gray-500 uppercase mb-1">Barrera Electoral (5%)</p>
-                                <p className="text-xl font-black">{calculation.threshold.toFixed(2)} votos</p>
-                                <p className="text-[9px] text-gray-400 mt-1 leading-tight">Mínimo para participar en la adjudicación de representantes.</p>
+                            <div className="w-48 bg-gray-50 p-3 rounded-lg border border-gray-100 text-center">
+                                <p className="text-[8px] font-black text-gray-500 uppercase mb-1">Barrera Electoral (5%)</p>
+                                <p className="text-lg font-black">{calculation.threshold.toFixed(2)}</p>
+                                <p className="text-[7px] text-gray-400 mt-1 uppercase leading-tight font-bold">Votos mínimos necesarios</p>
                             </div>
                         </div>
                     </div>
 
-                    {/* Tabla de reparto principal */}
-                    <div className="mb-8">
-                        <h3 className="text-xs font-black uppercase tracking-widest mb-3 text-gray-400 border-b border-gray-100 pb-1">Adjudicación de Representantes (9 Delegados)</h3>
+                    {/* Adjudicación */}
+                    <div>
+                        <h3 className="text-[10px] font-black uppercase tracking-widest mb-2 text-gray-300 border-b border-gray-50 pb-1">REPARTO DE 9 DELEGADOS (SISTEMA DE RESTOS MAYORES)</h3>
                         <table className="w-full text-left">
                             <thead>
-                                <tr className="text-[9px] font-black uppercase tracking-widest text-gray-400 border-b border-gray-200">
+                                <tr className="text-[8px] font-black uppercase tracking-widest text-gray-400 border-b border-gray-100">
                                     <th className="py-2 px-2">Candidatura</th>
                                     <th className="py-2 text-center">Votos</th>
-                                    <th className="py-2 text-center">% Válidos</th>
-                                    <th className="py-2 text-right">Delegados</th>
+                                    <th className="py-2 text-center">% S/ Válidos</th>
+                                    <th className="py-2 text-right">Delegados Obt.</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-50">
                                 {calculation.distribution.map((list) => (
                                     <tr key={list.name}>
-                                        <td className="py-4 px-2">
+                                        <td className="py-3 px-2">
                                             <div className="flex items-center gap-3">
-                                                <div className="w-1.5 h-8 rounded-full" style={{ backgroundColor: list.barColor }} />
-                                                <span className="text-xl font-black uppercase">{list.name}</span>
+                                                <div className="w-1 h-6 rounded-full" style={{ backgroundColor: list.barColor }} />
+                                                <span className="text-lg font-black uppercase">{list.name}</span>
                                             </div>
                                         </td>
-                                        <td className="py-4 text-center text-xl font-bold">{list.votes}</td>
-                                        <td className="py-4 text-center text-gray-500 font-bold">{((list.votes / calculation.validVotes) * 100).toFixed(1)}%</td>
-                                        <td className="py-4 text-right">
-                                            <span className="inline-block px-5 py-2 bg-black text-white text-2xl font-black rounded-lg">
+                                        <td className="py-3 text-center text-lg font-bold">{list.votes}</td>
+                                        <td className="py-3 text-center text-gray-500 font-bold text-sm">{((list.votes / calculation.validVotes) * 100).toFixed(1)}%</td>
+                                        <td className="py-3 text-right">
+                                            <span className="inline-block px-4 py-1.5 bg-black text-white text-xl font-black rounded-md">
                                                 {list.seats}
                                             </span>
                                         </td>
@@ -432,10 +430,9 @@ const ElectionResults: React.FC<ElectionResultsProps> = ({ censusTotal }) => {
                         </table>
                     </div>
 
-                    {/* Footer del reporte */}
-                    <div className="mt-8 pt-6 border-t border-gray-100 flex justify-between items-center text-[9px] font-bold text-gray-300 uppercase tracking-widest">
-                        <p>Sistema VotoTrack FIBSAL</p>
-                        <p>Documento Informativo de Resultados Electorales</p>
+                    <div className="mt-8 pt-4 border-t border-gray-100 flex justify-between items-center text-[8px] font-bold text-gray-300 uppercase tracking-widest">
+                        <p>© VotoTrack FIBSAL 2026</p>
+                        <p>Documento de caracter informativo generado por el sistema</p>
                     </div>
                 </div>
             </div>
@@ -443,22 +440,36 @@ const ElectionResults: React.FC<ElectionResultsProps> = ({ censusTotal }) => {
             <style dangerouslySetInnerHTML={{
                 __html: `
         @media print {
-          body * { visibility: hidden; }
+          @page {
+            size: A4;
+            margin: 0;
+          }
+          html, body {
+            height: 100%;
+            margin: 0 !important;
+            padding: 0 !important;
+            background: white !important;
+            overflow: hidden !important;
+          }
+          body * { 
+            visibility: hidden !important; 
+          }
           .print-report-container, .print-report-container * { 
             visibility: visible !important;
             display: block !important;
           }
           .print-report-container { 
-            position: fixed !important; 
+            position: absolute !important; 
             top: 0 !important; 
-            left: 0 !important;
-            width: 100% !important;
+            left: 50% !important;
+            transform: translateX(-50%) scale(0.95) !important;
+            transform-origin: top center !important;
+            width: 190mm !important;
             margin: 0 !important;
-            padding: 0 !important;
+            padding: 10mm 0 !important;
             background: white !important;
+            z-index: 9999 !important;
           }
-          html, body { background: white !important; height: auto !important; overflow: visible !important; }
-          @page { size: auto; margin: 0; }
         }
       `}} />
         </div>
