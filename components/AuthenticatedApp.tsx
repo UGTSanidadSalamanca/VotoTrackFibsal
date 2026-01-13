@@ -11,7 +11,9 @@ import UserManagement from './UserManagement';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import { AuthContext } from '../context/AuthContext';
 import { Button } from './ui/Button';
-import { Users, UserCog, RefreshCw, AlertCircle, Clock } from 'lucide-react';
+import { Users, UserCog, RefreshCw, AlertCircle, Clock, BarChart3 } from 'lucide-react';
+import ElectionResults from './ElectionResults';
+
 
 const normalizeText = (text: string) => {
   return text
@@ -24,7 +26,7 @@ const AuthenticatedApp: React.FC = () => {
   const auth = useContext(AuthContext);
   const currentUser = auth?.user as User;
 
-  const [activeTab, setActiveTab] = useState<'voters' | 'users'>('voters');
+  const [activeTab, setActiveTab] = useState<'voters' | 'users' | 'results'>('voters');
   const [allVoters, setAllVoters] = useLocalStorage<Voter[]>('voto-track-voters', []);
   const [lastSync, setLastSync] = useLocalStorage<string | null>('voto-track-last-sync', null);
   const [isLoading, setIsLoading] = useState(false);
@@ -150,6 +152,14 @@ const AuthenticatedApp: React.FC = () => {
                 <UserCog className="w-4 h-4 mr-2" />
                 Usuarios
               </Button>
+              <Button
+                variant={activeTab === 'results' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setActiveTab('results')}
+              >
+                <BarChart3 className="w-4 h-4 mr-2" />
+                Resultados
+              </Button>
             </div>
           )}
           {lastSync && (
@@ -216,8 +226,10 @@ const AuthenticatedApp: React.FC = () => {
             )}
           </main>
         </div>
-      ) : (
+      ) : activeTab === 'users' ? (
         <UserManagement />
+      ) : (
+        <ElectionResults censusTotal={totalVoters} />
       )}
     </div>
   );
