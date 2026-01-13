@@ -3,7 +3,7 @@ import React, { useState, useMemo, useRef } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from './ui/Card';
 import { Input } from './ui/Input';
 import { Button } from './ui/Button';
-import { Calculator, PieChart, TrendingUp, Users, Info, RotateCcw, FileDown, Printer, Award, Table as TableIcon } from 'lucide-react';
+import { Calculator, PieChart, TrendingUp, Users, Info, RotateCcw, FileDown } from 'lucide-react';
 
 interface ElectionResultsProps {
     censusTotal: number;
@@ -83,10 +83,6 @@ const ElectionResults: React.FC<ElectionResultsProps> = ({ censusTotal }) => {
         return { totalVotes, validVotes, participation: censusTotal > 0 ? (totalVotes / censusTotal) * 100 : 0, distribution: initialDistribution, threshold };
     }, [results, censusTotal]);
 
-    const handlePrint = () => {
-        window.print();
-    };
-
     const handleDownloadPDF = async () => {
         if (calculation.totalVotes === 0) return;
         setIsGeneratingPDF(true);
@@ -102,9 +98,13 @@ const ElectionResults: React.FC<ElectionResultsProps> = ({ censusTotal }) => {
                 backgroundColor: '#ffffff',
                 logging: false,
                 onclone: (clonedDoc) => {
-                    // Ensure the cloned element is visible for capture
                     const report = clonedDoc.getElementById('printable-report-wrapper');
-                    if (report) report.style.display = 'block';
+                    if (report) {
+                        report.style.display = 'block';
+                        report.style.visibility = 'visible';
+                        report.style.position = 'relative';
+                        report.style.left = '0';
+                    }
                 }
             });
 
@@ -125,8 +125,7 @@ const ElectionResults: React.FC<ElectionResultsProps> = ({ censusTotal }) => {
 
     return (
         <div className="space-y-6">
-            {/* UI DESKTOP */}
-            <div className="flex flex-col sm:flex-row justify-between items-center gap-4 border-b border-white/5 pb-6 print:hidden">
+            <div className="flex flex-col sm:flex-row justify-between items-center gap-4 border-b border-white/5 pb-6">
                 <div>
                     <h2 className="text-3xl font-black text-white tracking-tight">Cálculo de Resultados</h2>
                     <p className="text-gray-500 text-xs font-bold uppercase tracking-widest mt-1">Escrutinio y Reparto de Delegados</p>
@@ -135,21 +134,17 @@ const ElectionResults: React.FC<ElectionResultsProps> = ({ censusTotal }) => {
                     <Button variant="outline" size="sm" onClick={resetResults} className="text-gray-400 hover:text-white border-white/10 h-10">
                         <RotateCcw className="w-4 h-4 mr-2" /> Reiniciar
                     </Button>
-                    <Button variant="outline" size="sm" onClick={handlePrint} className="text-gray-400 hover:text-white border-white/10 h-10">
-                        <Printer className="w-4 h-4 mr-2" /> Imprimir
-                    </Button>
                     <Button
                         onClick={handleDownloadPDF}
                         disabled={isGeneratingPDF || calculation.totalVotes === 0}
                         className="bg-primary hover:bg-primary/90 text-white font-bold h-10 shadow-lg shadow-primary/20 border-none px-6"
                     >
-                        {isGeneratingPDF ? 'Generando...' : 'Descargar PDF'}
+                        {isGeneratingPDF ? 'Generando...' : 'Descargar Acta PDF'}
                     </Button>
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 print:hidden">
-                {/* INPUTS SECTION */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <Card className="lg:col-span-1 border-white/10 bg-white/5 backdrop-blur-md">
                     <CardHeader className="border-b border-white/5">
                         <CardTitle className="text-lg font-black text-white flex items-center gap-2">
@@ -188,7 +183,6 @@ const ElectionResults: React.FC<ElectionResultsProps> = ({ censusTotal }) => {
                     </CardContent>
                 </Card>
 
-                {/* STATS SECTION */}
                 <div className="lg:col-span-2 space-y-6">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div className="bg-white/5 border border-white/10 rounded-2xl p-6 flex items-center justify-between">
@@ -248,13 +242,8 @@ const ElectionResults: React.FC<ElectionResultsProps> = ({ censusTotal }) => {
                 </div>
             </div>
 
-            {/* 
-          PRINTABLE REPORT: 
-          This is what becomes visible only on PRINT or when generating PDF.
-      */}
-            <div id="printable-report-wrapper" className="print-only-layout print:block hidden overflow-hidden">
+            <div id="printable-report-wrapper" className="hidden overflow-hidden">
                 <div ref={reportRef} className="report-canvas">
-                    {/* Header */}
                     <div className="report-top-header">
                         <div className="report-titles">
                             <h1 className="report-main-title">Acta de Escrutinio Final</h1>
@@ -266,7 +255,6 @@ const ElectionResults: React.FC<ElectionResultsProps> = ({ censusTotal }) => {
                         </div>
                     </div>
 
-                    {/* Stats Bar */}
                     <div className="report-stats-stripe">
                         <div className="stripe-item">
                             <span className="item-lbl">CENSO TOTAL</span>
@@ -282,7 +270,6 @@ const ElectionResults: React.FC<ElectionResultsProps> = ({ censusTotal }) => {
                         </div>
                     </div>
 
-                    {/* Breakdown Section */}
                     <div className="report-sections">
                         <div className="section-left">
                             <h3 className="section-hdr">Desglose de Votos</h3>
@@ -301,8 +288,8 @@ const ElectionResults: React.FC<ElectionResultsProps> = ({ censusTotal }) => {
                                         <td className="text-right bolder">{calculation.validVotes}</td>
                                     </tr>
                                     <tr>
-                                        <td className="text-slate-400">Votos Nulos</td>
-                                        <td className="text-right text-slate-400">{results.null}</td>
+                                        <td className="text-gray-400">Votos Nulos</td>
+                                        <td className="text-right text-gray-400 font-bold">{results.null}</td>
                                     </tr>
                                 </tbody>
                             </table>
@@ -329,16 +316,16 @@ const ElectionResults: React.FC<ElectionResultsProps> = ({ censusTotal }) => {
                                                 <div className="color-strip" style={{ backgroundColor: l.barColor }}></div>
                                                 <span className="lbl-name">{l.name}</span>
                                             </td>
-                                            <td className="text-center font-bold">{l.votes}</td>
-                                            <td className="text-center text-slate-500">{((l.votes / (calculation.validVotes || 1)) * 100).toFixed(1)}%</td>
+                                            <td className="text-center font-bold text-lg">{l.votes}</td>
+                                            <td className="text-center text-gray-500 font-bold">{((l.votes / (calculation.validVotes || 1)) * 100).toFixed(1)}%</td>
                                             <td className="text-right">
                                                 <span className="seat-circle">{l.seats}</span>
                                             </td>
                                         </tr>
                                     ))}
                                     <tr className="final-stripe">
-                                        <td colSpan={3} className="text-right font-bold text-slate-400 uppercase text-[10px]">Total Escaños Asignados</td>
-                                        <td className="text-right font-black text-2xl">9</td>
+                                        <td colSpan={3} className="text-right font-bold text-gray-400 uppercase text-[10px]">Total Escaños Asignados</td>
+                                        <td className="text-right font-black text-3xl">9</td>
                                     </tr>
                                 </tbody>
                             </table>
@@ -353,13 +340,12 @@ const ElectionResults: React.FC<ElectionResultsProps> = ({ censusTotal }) => {
 
             <style dangerouslySetInnerHTML={{
                 __html: `
-        /* REPORT STORES STYLES - WHITE THEME FOR PRINT */
         .report-canvas {
           width: 190mm;
           min-height: 270mm;
           background: #ffffff !important;
           color: #000000 !important;
-          padding: 10mm;
+          padding: 15mm;
           font-family: 'Inter', sans-serif !important;
           box-sizing: border-box;
           text-align: left;
@@ -387,7 +373,7 @@ const ElectionResults: React.FC<ElectionResultsProps> = ({ censusTotal }) => {
         .simple-report-table td { padding: 10px 0; border-bottom: 1px solid #f1f5f9; }
         .bold { font-weight: 700; }
         .accent-row td { padding: 15px 0; border-bottom: 2px solid #000; }
-        .bolder { font-size: 20px; font-weight: 900; color: #dc2626 !important; }
+        .bolder { font-size: 22px; font-weight: 900; color: #dc2626 !important; }
         .barrera-alert { margin-top: 20px; padding: 15px; background: #fffcf0 !important; border: 1px dashed #eab308; border-radius: 10px; font-size: 11px; color: #854d0e !important; }
 
         .results-report-table { width: 100%; border-collapse: collapse; }
@@ -395,48 +381,11 @@ const ElectionResults: React.FC<ElectionResultsProps> = ({ censusTotal }) => {
         .results-report-table td { padding: 12px 10px; border-bottom: 1px solid #f3f4f6; vertical-align: middle; }
         .flex-name { display: flex; align-items: center; gap: 10px; }
         .color-strip { width: 4px; height: 35px; border-radius: 99px; }
-        .lbl-name { font-size: 20px; font-weight: 900; text-transform: uppercase; letter-spacing: -0.5px; }
+        .lbl-name { font-size: 22px; font-weight: 900; text-transform: uppercase; letter-spacing: -1px; }
         .seat-circle { display: inline-flex; width: 45px; height: 45px; background: #000 !important; color: #fff !important; border-radius: 12px; align-items: center; justify-content: center; font-size: 24px; font-weight: 900; }
-        .final-stripe td { border: none; padding-top: 20px; }
 
         .report-footer-banner { margin-top: 40px; padding-top: 20px; border-top: 1px solid #f3f4f6; text-align: center; }
         .report-footer-banner p { font-size: 9px; font-weight: 900; color: #d1d5db !important; letter-spacing: 3px; margin: 0; }
-
-        .text-right { text-align: right; }
-        .text-center { text-align: center; }
-
-        @media print {
-          /* REMOVE EVERYTHING BLACK FROM THE PAGE */
-          html, body { background: #ffffff !important; color: #000000 !important; margin: 0 !important; padding: 0 !important; height: auto !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-          
-          /* HIDE SCREEN ELEMENTS */
-          body > * { display: none !important; }
-          
-          /* SHOW ONLY REPORT */
-          #printable-report-wrapper { 
-            display: block !important; 
-            visibility: visible !important;
-            position: absolute !important;
-            top: 0 !important;
-            left: 0 !important;
-            width: 100% !important;
-            z-index: 99999 !important;
-          }
-          
-          .report-canvas {
-            display: block !important;
-            visibility: visible !important;
-            width: 190mm !important;
-            margin: 0 auto !important;
-          }
-          
-          /* FORCE COLORS */
-          .report-top-header { border-bottom-color: #dc2626 !important; }
-          .report-stats-stripe { background-color: #f3f4f6 !important; }
-          .item-val { color: #000 !important; }
-          .stripe-item.highlight .item-val { color: #dc2626 !important; }
-          .seat-circle { background-color: #000 !important; color: #fff !important; }
-        }
       `}} />
         </div>
     );
