@@ -213,7 +213,7 @@ const ElectionResults: React.FC<ElectionResultsProps> = ({ censusTotal }) => {
                                 <tr className="bg-white/5 text-[10px] font-black uppercase tracking-widest text-gray-500 border-b border-white/10">
                                     <th className="px-6 py-4">Sindicato</th>
                                     <th className="px-6 py-4 text-center">Votos</th>
-                                    <th className="px-6 py-4 text-right">Escaños</th>
+                                    <th className="px-6 py-4 text-right">Delegados</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-white/5">
@@ -294,7 +294,7 @@ const ElectionResults: React.FC<ElectionResultsProps> = ({ censusTotal }) => {
                                 </tbody>
                             </table>
                             <div className="barrera-alert">
-                                <p>Barrera Electoral del <strong>5.00%</strong>: Los sindicatos requieren un mínimo de <strong>{calculation.threshold.toFixed(2)}</strong> votos para entrar en la adjudicación de escaños.</p>
+                                <p>Barrera Electoral del <strong>5.00%</strong>: Los sindicatos requieren un mínimo de <strong>{calculation.threshold.toFixed(2)}</strong> votos para entrar en la adjudicación de delegados.</p>
                             </div>
                         </div>
 
@@ -324,7 +324,7 @@ const ElectionResults: React.FC<ElectionResultsProps> = ({ censusTotal }) => {
                                         </tr>
                                     ))}
                                     <tr className="final-stripe">
-                                        <td colSpan={3} className="text-right font-bold text-gray-400 uppercase text-[10px]">Total Escaños Asignados</td>
+                                        <td colSpan={3} className="text-right font-bold text-gray-400 uppercase text-[10px]">Total Delegados Asignados</td>
                                         <td className="text-right font-black text-3xl">9</td>
                                     </tr>
                                 </tbody>
