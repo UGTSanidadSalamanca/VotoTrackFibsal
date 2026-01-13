@@ -39,13 +39,7 @@ const ElectionResults: React.FC<ElectionResultsProps> = ({ censusTotal }) => {
 
     const resetResults = () => {
         if (confirm('¿Estás seguro de que quieres borrar todos los datos introducidos?')) {
-            setResults({
-                ugt: 0,
-                ccoo: 0,
-                csif: 0,
-                blank: 0,
-                null: 0,
-            });
+            setResults({ ugt: 0, ccoo: 0, csif: 0, blank: 0, null: 0 });
         }
     };
 
@@ -53,7 +47,6 @@ const ElectionResults: React.FC<ElectionResultsProps> = ({ censusTotal }) => {
         const { ugt, ccoo, csif, blank, null: nullVotes } = results;
         const totalVotes = ugt + ccoo + csif + blank + nullVotes;
         const validVotes = ugt + ccoo + csif + blank;
-
         const threshold = validVotes * 0.05;
         const totalSeats = 9;
 
@@ -66,25 +59,13 @@ const ElectionResults: React.FC<ElectionResultsProps> = ({ censusTotal }) => {
         const eligibleLists = lists.filter(list => list.votes >= threshold && list.votes > 0);
 
         if (validVotes === 0 || eligibleLists.length === 0) {
-            return {
-                totalVotes,
-                validVotes,
-                participation: censusTotal > 0 ? (totalVotes / censusTotal) * 100 : 0,
-                distribution: [],
-                threshold
-            };
+            return { totalVotes, validVotes, participation: censusTotal > 0 ? (totalVotes / censusTotal) * 100 : 0, distribution: [], threshold };
         }
 
         const quota = validVotes / totalSeats;
-
         let initialDistribution = eligibleLists.map(list => {
             const cociente = list.votes / quota;
-            return {
-                ...list,
-                cociente: cociente,
-                seats: Math.floor(cociente),
-                remainder: cociente - Math.floor(cociente)
-            };
+            return { ...list, cociente: cociente, seats: Math.floor(cociente), remainder: cociente - Math.floor(cociente) };
         });
 
         let assignedSeats = initialDistribution.reduce((acc, l) => acc + l.seats, 0);
@@ -99,223 +80,89 @@ const ElectionResults: React.FC<ElectionResultsProps> = ({ censusTotal }) => {
             }
         }
 
-        return {
-            totalVotes,
-            validVotes,
-            participation: censusTotal > 0 ? (totalVotes / censusTotal) * 100 : 0,
-            distribution: initialDistribution,
-            threshold
-        };
+        return { totalVotes, validVotes, participation: censusTotal > 0 ? (totalVotes / censusTotal) * 100 : 0, distribution: initialDistribution, threshold };
     }, [results, censusTotal]);
 
-    const handlePrint = () => {
-        window.print();
-    };
+    const handlePrint = () => window.print();
 
     const handleDownloadPDF = async () => {
         if (calculation.totalVotes === 0) return;
-
         setIsGeneratingPDF(true);
         try {
             const html2canvas = (await import('https://esm.sh/html2canvas@1.4.1')).default;
             const { jsPDF } = await import('https://esm.sh/jspdf@2.5.1');
-
             const element = reportRef.current;
             if (!element) return;
-
-            const canvas = await html2canvas(element, {
-                scale: 2,
-                useCORS: true,
-                backgroundColor: '#ffffff',
-            });
-
+            const canvas = await html2canvas(element, { scale: 2, useCORS: true, backgroundColor: '#ffffff' });
             const imgData = canvas.toDataURL('image/png');
             const pdf = new jsPDF('p', 'mm', 'a4');
-            const pdfWidth = pdf.internal.pageSize.getWidth();
-            const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-
-            const pageHeight = pdf.internal.pageSize.getHeight();
-
-            if (pdfHeight > pageHeight) {
-                // Reducimos un pelín el ancho para asegurar márgenes laterales en el PDF y escalamos alto
-                pdf.addImage(imgData, 'PNG', 5, 5, pdfWidth - 10, pageHeight - 15);
-            } else {
-                pdf.addImage(imgData, 'PNG', 5, 5, pdfWidth - 10, pdfHeight);
-            }
-
-            pdf.save(`Informe_Elecciones_Fibsal_${new Date().toISOString().split('T')[0]}.pdf`);
+            pdf.addImage(imgData, 'PNG', 10, 10, 190, (canvas.height * 190) / canvas.width);
+            pdf.save(`Resultados_Fibsal_${new Date().toISOString().split('T')[0]}.pdf`);
         } catch (error) {
-            console.error('Error generating PDF:', error);
-            alert('Error técnico al generar el PDF.');
+            console.error(error);
+            alert('Error al generar PDF.');
         } finally {
             setIsGeneratingPDF(false);
         }
     };
 
-    const participationColor = useMemo(() => {
-        if (calculation.participation > 70) return 'text-green-400';
-        if (calculation.participation > 40) return 'text-yellow-400';
-        return 'text-red-400';
-    }, [calculation.participation]);
-
     return (
-        <div className="space-y-6 animate-in fade-in duration-500">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-white/5 pb-6 print:hidden">
-                <div>
-                    <h2 className="text-3xl font-black text-white tracking-tight">Escrutinio y Estadística</h2>
-                    <p className="text-gray-400 text-sm">Control de resultados y reparto de delegados</p>
-                </div>
-                <div className="flex items-center gap-2">
-                    <Button variant="outline" size="sm" onClick={resetResults} className="text-gray-400 hover:text-white border-white/10 h-10">
-                        <RotateCcw className="w-4 h-4 mr-2" />
-                        Reiniciar
-                    </Button>
-                    <Button variant="outline" size="sm" onClick={handlePrint} className="text-gray-400 hover:text-white border-white/10 h-10">
-                        <Printer className="w-4 h-4 mr-2" />
-                        Imprimir
-                    </Button>
-                    <Button
-                        onClick={handleDownloadPDF}
-                        disabled={isGeneratingPDF || calculation.totalVotes === 0}
-                        className="bg-primary hover:bg-primary/90 text-white font-bold h-10 shadow-lg shadow-primary/20"
-                    >
-                        {isGeneratingPDF ? (
-                            <span className="flex items-center gap-2 px-2">
-                                <RotateCcw className="w-4 h-4 animate-spin" />
-                                Generando...
-                            </span>
-                        ) : (
-                            <span className="flex items-center gap-2 px-2">
-                                <FileDown className="w-4 h-4" />
-                                Descargar PDF
-                            </span>
-                        )}
+        <div className="space-y-6">
+            {/* Botones UI */}
+            <div className="flex flex-col sm:flex-row justify-between items-center gap-4 border-b border-white/5 pb-4 print:hidden">
+                <h2 className="text-2xl font-black text-white">Escrutinio FIBSAL</h2>
+                <div className="flex gap-2">
+                    <Button variant="outline" size="sm" onClick={resetResults} className="text-gray-400 border-white/10"><RotateCcw className="w-4 h-4 mr-2" />Reiniciar</Button>
+                    <Button variant="outline" size="sm" onClick={handlePrint} className="text-gray-400 border-white/10"><Printer className="w-4 h-4 mr-2" />Imprimir</Button>
+                    <Button onClick={handleDownloadPDF} disabled={isGeneratingPDF || calculation.totalVotes === 0} className="bg-primary text-white font-bold h-9">
+                        <FileDown className="w-4 h-4 mr-2" /> {isGeneratingPDF ? 'Generando...' : 'PDF'}
                     </Button>
                 </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 print:hidden">
-                {/* UI normal del cálculo */}
-                <Card className="md:col-span-1 border-white/10 bg-white/5 backdrop-blur-sm shadow-xl">
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2 text-lg font-bold text-white">
-                            <Calculator className="w-5 h-5 text-primary" />
-                            Introducir Votos
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                        <div className="space-y-2">
-                            <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest">UGT</label>
-                            <Input
-                                type="number"
-                                name="ugt"
-                                value={results.ugt || ''}
-                                onChange={handleInputChange}
-                                className="bg-black/40 border-white/20 focus:border-primary/50 transition-all font-mono text-lg text-white"
-                                placeholder="0"
-                            />
-                        </div>
-                        <div className="space-y-2">
-                            <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest">CCOO</label>
-                            <Input
-                                type="number"
-                                name="ccoo"
-                                value={results.ccoo || ''}
-                                onChange={handleInputChange}
-                                className="bg-black/40 border-white/20 focus:border-primary/50 transition-all font-mono text-lg text-white"
-                                placeholder="0"
-                            />
-                        </div>
-                        <div className="space-y-2">
-                            <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest">CSIF</label>
-                            <Input
-                                type="number"
-                                name="csif"
-                                value={results.csif || ''}
-                                onChange={handleInputChange}
-                                className="bg-black/40 border-white/20 focus:border-primary/50 transition-all font-mono text-lg text-white"
-                                placeholder="0"
-                            />
-                        </div>
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                                <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Blanco</label>
-                                <Input
-                                    type="number"
-                                    name="blank"
-                                    value={results.blank || ''}
-                                    onChange={handleInputChange}
-                                    className="bg-black/40 border-white/20 focus:border-primary/50 transition-all font-mono text-white"
-                                    placeholder="0"
-                                />
+                {/* Lado Izquierdo: Formulario */}
+                <Card className="md:col-span-1 border-white/10 bg-white/5">
+                    <CardContent className="pt-6 space-y-4">
+                        {['ugt', 'ccoo', 'csif'].map((k) => (
+                            <div key={k} className="space-y-1">
+                                <label className="text-[10px] font-bold text-gray-500 uppercase">{k}</label>
+                                <Input type="number" name={k} value={(results as any)[k] || ''} onChange={handleInputChange} className="bg-black/40 border-white/20 text-white h-9" />
                             </div>
-                            <div className="space-y-2">
-                                <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Nulo</label>
-                                <Input
-                                    type="number"
-                                    name="null"
-                                    value={results.null || ''}
-                                    onChange={handleInputChange}
-                                    className="bg-black/40 border-white/20 focus:border-primary/50 transition-all font-mono text-white"
-                                    placeholder="0"
-                                />
+                        ))}
+                        <div className="grid grid-cols-2 gap-2">
+                            <div className="space-y-1">
+                                <label className="text-[10px] font-bold text-gray-500 uppercase">Blanco</label>
+                                <Input type="number" name="blank" value={results.blank || ''} onChange={handleInputChange} className="bg-black/40 border-white/20 text-white h-9" />
+                            </div>
+                            <div className="space-y-1">
+                                <label className="text-[10px] font-bold text-gray-500 uppercase">Nulo</label>
+                                <Input type="number" name="null" value={results.null || ''} onChange={handleInputChange} className="bg-black/40 border-white/20 text-white h-9" />
                             </div>
                         </div>
                     </CardContent>
                 </Card>
 
+                {/* Lado Derecho: Visualización rápida */}
                 <div className="md:col-span-2 space-y-6">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <Card className="border-white/10 bg-white/5">
-                            <CardContent className="pt-6">
-                                <div className="flex items-center justify-between">
-                                    <div>
-                                        <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Participación</p>
-                                        <h3 className={`text-4xl font-black ${participationColor}`}>
-                                            {calculation.participation.toFixed(2)}%
-                                        </h3>
-                                    </div>
-                                    <PieChart className="w-8 h-8 text-primary opacity-50" />
-                                </div>
-                            </CardContent>
+                    <div className="grid grid-cols-2 gap-4">
+                        <Card className="border-white/10 bg-white/5 p-4 flex flex-col justify-center">
+                            <p className="text-[10px] font-bold text-gray-500 uppercase">Participación</p>
+                            <h3 className="text-3xl font-black text-primary">{calculation.participation.toFixed(2)}%</h3>
                         </Card>
-                        <Card className="border-white/10 bg-white/5">
-                            <CardContent className="pt-6">
-                                <div className="flex items-center justify-between">
-                                    <div>
-                                        <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Delegados</p>
-                                        <h3 className="text-4xl font-black text-white">9</h3>
-                                    </div>
-                                    <TrendingUp className="w-8 h-8 text-green-500 opacity-50" />
-                                </div>
-                            </CardContent>
+                        <Card className="border-white/10 bg-white/5 p-4 flex flex-col justify-center">
+                            <p className="text-[10px] font-bold text-gray-500 uppercase">Delegados</p>
+                            <h3 className="text-3xl font-black text-white">9</h3>
                         </Card>
                     </div>
-
                     <Card className="border-white/10 bg-white/5 overflow-hidden">
-                        <table className="w-full text-left">
-                            <thead>
-                                <tr className="bg-white/5 text-[10px] uppercase font-black text-gray-500 border-b border-white/10">
-                                    <th className="px-6 py-4">Sindicato</th>
-                                    <th className="px-6 py-4 text-center">Votos</th>
-                                    <th className="px-6 py-4 text-right">Escaños</th>
-                                </tr>
-                            </thead>
+                        <table className="w-full text-sm">
                             <tbody className="divide-y divide-white/5">
-                                {calculation.distribution.map((list) => (
-                                    <tr key={list.name}>
-                                        <td className="px-6 py-4">
-                                            <div className="flex items-center gap-3">
-                                                <div className={`w-1 h-6 rounded-full ${list.color}`} />
-                                                <span className="font-bold text-white uppercase text-sm">{list.name}</span>
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4 text-center font-mono text-xl text-white">{list.votes}</td>
-                                        <td className="px-6 py-4 text-right">
-                                            <span className="bg-primary/20 text-primary px-3 py-1 rounded font-black text-xl">
-                                                {list.seats}
-                                            </span>
-                                        </td>
+                                {calculation.distribution.map(l => (
+                                    <tr key={l.name} className="py-2">
+                                        <td className="px-4 py-3 font-bold text-white">{l.name}</td>
+                                        <td className="px-4 py-3 text-center">{l.votes} votos</td>
+                                        <td className="px-4 py-3 text-right font-black text-xl text-primary">{l.seats}</td>
                                     </tr>
                                 ))}
                             </tbody>
@@ -324,115 +171,96 @@ const ElectionResults: React.FC<ElectionResultsProps> = ({ censusTotal }) => {
                 </div>
             </div>
 
-            {/* REPORTE ULTRACONCENTRADO PARA PDF E IMPRESIÓN */}
-            <div
-                style={{
-                    position: 'absolute',
-                    top: '-9999px',
-                    left: '0',
-                    width: '190mm', // Un poco más estrecho para evitar cortes laterales
-                    backgroundColor: '#ffffff'
-                }}
-                className="print-report-container"
-            >
-                <div ref={reportRef} className="p-6 text-black font-sans bg-white" style={{ width: '190mm' }}>
-                    {/* Cabecera */}
-                    <div className="flex justify-between items-end border-b-2 border-red-600 pb-2 mb-4">
+            {/* REPORTE ULTRA-COMPACTO (ESTILO TABLA OFICIAL) */}
+            <div style={{ position: 'absolute', top: '-9999px', left: '0', width: '180mm', backgroundColor: '#fff' }} className="print:static print:visible">
+                <div ref={reportRef} className="p-8 text-black font-sans text-sm leading-tight bg-white">
+                    <div className="border-b-2 border-black pb-2 mb-4 flex justify-between items-end">
                         <div>
-                            <h1 className="text-3xl font-black uppercase tracking-tighter text-red-600 leading-none">ACTA DE ESCRUTINIO</h1>
-                            <p className="text-base font-bold text-gray-600">FIBSAL - Resultados Oficiales</p>
+                            <h1 className="text-xl font-bold uppercase tracking-tight">Acta de Resultados Electorales</h1>
+                            <p className="text-xs font-bold text-gray-600">FIBSAL - Centro de Investigación Biomédica de Salamanca</p>
                         </div>
-                        <div className="text-right">
-                            <p className="text-[10px] font-black text-gray-400 uppercase">Emisión</p>
-                            <p className="text-sm font-black">{new Date().toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' })}</p>
-                        </div>
+                        <p className="text-xs font-bold">{new Date().toLocaleDateString('es-ES')}</p>
                     </div>
 
-                    {/* Estadísticas clave */}
-                    <div className="grid grid-cols-3 gap-3 mb-4">
-                        <div className="p-3 bg-gray-50 rounded-lg border border-gray-100 flex flex-col justify-center">
-                            <p className="text-[9px] font-black text-gray-500 uppercase leading-none mb-1">Censo</p>
-                            <p className="text-2xl font-black leading-none">{censusTotal}</p>
-                        </div>
-                        <div className="p-3 bg-gray-100 rounded-lg border border-gray-200 flex flex-col justify-center">
-                            <p className="text-[9px] font-black text-gray-500 uppercase leading-none mb-1">Escrutados</p>
-                            <p className="text-2xl font-black leading-none">{calculation.totalVotes}</p>
-                        </div>
-                        <div className="p-3 bg-red-50 rounded-lg border border-red-100 flex flex-col justify-center">
-                            <p className="text-[9px] font-black text-red-700 uppercase leading-none mb-1">Participación</p>
-                            <p className="text-2xl font-black text-red-600 leading-none">{calculation.participation.toFixed(2)}%</p>
-                        </div>
+                    <table className="w-full border-collapse mb-4">
+                        <tbody>
+                            <tr>
+                                <td className="border border-gray-300 p-2 font-bold bg-gray-50 w-1/3">Censo Total</td>
+                                <td className="border border-gray-300 p-2 text-center">{censusTotal}</td>
+                                <td className="border border-gray-300 p-2 font-bold bg-gray-50 w-1/3">Votos Emitidos</td>
+                                <td className="border border-gray-300 p-2 text-center">{calculation.totalVotes}</td>
+                            </tr>
+                            <tr>
+                                <td className="border border-gray-300 p-2 font-bold bg-gray-50">Índice Participación</td>
+                                <td className="border border-gray-300 p-2 text-center font-bold text-blue-700">{calculation.participation.toFixed(2)}%</td>
+                                <td className="border border-gray-300 p-2 font-bold bg-gray-50">Votos Nulos</td>
+                                <td className="border border-gray-300 p-2 text-center">{results.null}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <h3 className="text-xs font-bold uppercase mb-2 border-l-4 border-black pl-2 py-0.5">Escrutinio de Votos Válidos</h3>
+                    <table className="w-full border-collapse mb-4">
+                        <thead>
+                            <tr className="bg-gray-100 text-[10px] font-bold uppercase">
+                                <th className="border border-gray-300 p-1 text-left">Concepto</th>
+                                <th className="border border-gray-300 p-1 text-right">Cantidad de Votos</th>
+                                <th className="border border-gray-300 p-1 text-right">% s/ Válidos</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td className="border border-gray-300 p-1">Votos a candidaturas</td>
+                                <td className="border border-gray-300 p-1 text-right">{results.ugt + results.ccoo + results.csif}</td>
+                                <td className="border border-gray-300 p-1 text-right">{(calculation.validVotes > 0 ? ((results.ugt + results.ccoo + results.csif) / calculation.validVotes) * 100 : 0).toFixed(1)}%</td>
+                            </tr>
+                            <tr>
+                                <td className="border border-gray-300 p-1">Votos en Blanco</td>
+                                <td className="border border-gray-300 p-1 text-right">{results.blank}</td>
+                                <td className="border border-gray-300 p-1 text-right">{(calculation.validVotes > 0 ? (results.blank / calculation.validVotes) * 100 : 0).toFixed(1)}%</td>
+                            </tr>
+                            <tr className="font-bold bg-gray-50">
+                                <td className="border border-gray-300 p-1 uppercase">Total Votos Válidos</td>
+                                <td className="border border-gray-300 p-1 text-right text-blue-700">{calculation.validVotes}</td>
+                                <td className="border border-gray-300 p-1 text-right">100.0%</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <div className="mb-4 p-2 bg-gray-50 border border-gray-200 text-xs italic">
+                        <strong>Barrera Electoral (5%):</strong> Para entrar en el reparto se requiere un mínimo de <strong>{calculation.threshold.toFixed(2)}</strong> votos.
                     </div>
 
-                    {/* Análisis de votos */}
-                    <div className="mb-4">
-                        <h3 className="text-[10px] font-black uppercase tracking-widest mb-2 text-gray-300 border-b border-gray-50 pb-1">RESULTADOS DE VOTO</h3>
-                        <div className="flex gap-6 items-start">
-                            <table className="flex-1 text-xs">
-                                <tbody>
-                                    <tr className="border-b border-gray-50">
-                                        <td className="py-1.5 font-bold text-gray-600">Votos a Candidaturas</td>
-                                        <td className="py-1.5 text-right font-black">{results.ugt + results.ccoo + results.csif}</td>
-                                    </tr>
-                                    <tr className="border-b border-gray-50">
-                                        <td className="py-1.5 font-bold text-gray-600">Votos en Blanco</td>
-                                        <td className="py-1.5 text-right font-black">{results.blank}</td>
-                                    </tr>
-                                    <tr>
-                                        <td className="py-2 font-black text-black text-sm">VOTOS VÁLIDOS EMITIDOS</td>
-                                        <td className="py-2 text-right font-black text-xl text-red-600">{calculation.validVotes}</td>
-                                    </tr>
-                                    <tr className="text-gray-400 text-[10px] italic">
-                                        <td className="py-1">Papeletas Nulas / Otros</td>
-                                        <td className="py-1 text-right font-bold">{results.null}</td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                            <div className="w-48 bg-gray-50 p-3 rounded-lg border border-gray-100 text-center">
-                                <p className="text-[8px] font-black text-gray-500 uppercase mb-1">Barrera Electoral (5%)</p>
-                                <p className="text-lg font-black">{calculation.threshold.toFixed(2)}</p>
-                                <p className="text-[7px] text-gray-400 mt-1 uppercase leading-tight font-bold">Votos mínimos necesarios</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Adjudicación */}
-                    <div>
-                        <h3 className="text-[10px] font-black uppercase tracking-widest mb-2 text-gray-300 border-b border-gray-50 pb-1">REPARTO DE 9 DELEGADOS (SISTEMA DE RESTOS MAYORES)</h3>
-                        <table className="w-full text-left">
-                            <thead>
-                                <tr className="text-[8px] font-black uppercase tracking-widest text-gray-400 border-b border-gray-100">
-                                    <th className="py-2 px-2">Candidatura</th>
-                                    <th className="py-2 text-center">Votos</th>
-                                    <th className="py-2 text-center">% S/ Válidos</th>
-                                    <th className="py-2 text-right">Delegados Obt.</th>
+                    <h3 className="text-xs font-bold uppercase mb-2 border-l-4 border-black pl-2 py-0.5">Adjudicación de Representantes (Delegados)</h3>
+                    <table className="w-full border-collapse">
+                        <thead>
+                            <tr className="bg-gray-100 text-[10px] font-bold uppercase">
+                                <th className="border border-gray-300 p-1 text-left">Lista Sindical</th>
+                                <th className="border border-gray-300 p-1 text-right">Votos</th>
+                                <th className="border border-gray-300 p-1 text-right">Cociente</th>
+                                <th className="border border-gray-300 p-1 text-right">Resto</th>
+                                <th className="border border-gray-300 p-1 text-right">Delegados</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {calculation.distribution.map(l => (
+                                <tr key={l.name}>
+                                    <td className="border border-gray-300 p-1 font-bold">{l.name}</td>
+                                    <td className="border border-gray-300 p-1 text-right">{l.votes}</td>
+                                    <td className="border border-gray-300 p-1 text-right text-[10px] font-mono">{l.cociente.toFixed(4)}</td>
+                                    <td className="border border-gray-300 p-1 text-right text-[10px] font-mono text-gray-500">{l.remainder.toFixed(4)}</td>
+                                    <td className="border border-gray-300 p-2 text-right font-black text-lg bg-gray-50">{l.seats}</td>
                                 </tr>
-                            </thead>
-                            <tbody className="divide-y divide-gray-50">
-                                {calculation.distribution.map((list) => (
-                                    <tr key={list.name}>
-                                        <td className="py-3 px-2">
-                                            <div className="flex items-center gap-3">
-                                                <div className="w-1 h-6 rounded-full" style={{ backgroundColor: list.barColor }} />
-                                                <span className="text-lg font-black uppercase">{list.name}</span>
-                                            </div>
-                                        </td>
-                                        <td className="py-3 text-center text-lg font-bold">{list.votes}</td>
-                                        <td className="py-3 text-center text-gray-500 font-bold text-sm">{((list.votes / calculation.validVotes) * 100).toFixed(1)}%</td>
-                                        <td className="py-3 text-right">
-                                            <span className="inline-block px-4 py-1.5 bg-black text-white text-xl font-black rounded-md">
-                                                {list.seats}
-                                            </span>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
+                            ))}
+                            <tr className="bg-gray-100 font-bold">
+                                <td colSpan={4} className="border border-gray-300 p-1 text-right uppercase text-[10px]">Total Delegados Asignados</td>
+                                <td className="border border-gray-300 p-1 text-right">9</td>
+                            </tr>
+                        </tbody>
+                    </table>
 
-                    <div className="mt-8 pt-4 border-t border-gray-100 flex justify-between items-center text-[8px] font-bold text-gray-300 uppercase tracking-widest">
-                        <p>© VotoTrack FIBSAL 2026</p>
-                        <p>Documento de caracter informativo generado por el sistema</p>
+                    <div className="mt-8 pt-4 border-t border-gray-200 text-[10px] text-gray-400 text-center uppercase tracking-widest font-bold">
+                        VotoTrack FIBSAL - Sistema de Gestión Electoral
                     </div>
                 </div>
             </div>
@@ -440,36 +268,17 @@ const ElectionResults: React.FC<ElectionResultsProps> = ({ censusTotal }) => {
             <style dangerouslySetInnerHTML={{
                 __html: `
         @media print {
-          @page {
-            size: A4;
-            margin: 0;
-          }
-          html, body {
-            height: 100%;
-            margin: 0 !important;
-            padding: 0 !important;
-            background: white !important;
-            overflow: hidden !important;
-          }
-          body * { 
-            visibility: hidden !important; 
-          }
+          @page { size: A4; margin: 15mm; }
+          body * { visibility: hidden; }
           .print-report-container, .print-report-container * { 
             visibility: visible !important;
             display: block !important;
+            position: absolute !important;
+            top: 0 !important;
+            left: 0 !important;
+            width: 100% !important;
           }
-          .print-report-container { 
-            position: absolute !important; 
-            top: 0 !important; 
-            left: 50% !important;
-            transform: translateX(-50%) scale(0.95) !important;
-            transform-origin: top center !important;
-            width: 190mm !important;
-            margin: 0 !important;
-            padding: 10mm 0 !important;
-            background: white !important;
-            z-index: 9999 !important;
-          }
+          html, body { background: white !important; overflow: visible !important; }
         }
       `}} />
         </div>
