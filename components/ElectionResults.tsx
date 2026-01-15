@@ -46,7 +46,7 @@ const ElectionResults: React.FC<ElectionResultsProps> = ({ censusTotal }) => {
     const calculation = useMemo(() => {
         const { ugt, ccoo, csif, blank, null: nullVotes } = results;
         const totalVotes = ugt + ccoo + csif + blank + nullVotes;
-        const validVotes = ugt + ccoo + csif + blank;
+        const validVotes = ugt + ccoo + csif;
         const threshold = validVotes * 0.05;
         const totalSeats = 9;
 
@@ -279,13 +279,13 @@ const ElectionResults: React.FC<ElectionResultsProps> = ({ censusTotal }) => {
                                         <td>Votos a Candidaturas</td>
                                         <td className="text-right bold">{(results.ugt + results.ccoo + results.csif)}</td>
                                     </tr>
-                                    <tr>
-                                        <td>Votos en Blanco</td>
-                                        <td className="text-right bold">{results.blank}</td>
-                                    </tr>
                                     <tr className="accent-row">
                                         <td>TOTAL VOTOS VÁLIDOS</td>
                                         <td className="text-right bolder">{calculation.validVotes}</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Votos en Blanco</td>
+                                        <td className="text-right bold">{results.blank}</td>
                                     </tr>
                                     <tr>
                                         <td className="text-gray-400">Votos Nulos</td>
